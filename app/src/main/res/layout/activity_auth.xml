@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <TextView
+        android:id="@+id/back_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="뒤로가기"
+        android:textColor="@color/btn"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginTop="24dp"
+        android:layout_marginLeft="16dp"/>
+
+    <TextView
+        android:id="@+id/auth_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="본인인증"
+        android:textSize="32sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/back_btn"
+        android:layout_marginTop="32dp"
+        android:layout_marginLeft="40dp" />
+
+    <TextView
+        android:id="@+id/phone_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="휴대폰 번호"
+        android:textSize="16sp"
+        android:layout_marginTop="32dp"
+        app:layout_constraintStart_toStartOf="@id/auth_text"
+        app:layout_constraintTop_toBottomOf="@id/auth_text" />
+
+    <EditText
+        android:id="@+id/phone_input"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:text="01012340000"
+        android:background="#EAEAEA"
+        android:inputType="numberDecimal"
+        android:maxLength="11"
+        android:padding="8dp"
+        android:layout_marginTop="24dp"
+        android:layout_marginLeft="16dp"
+        app:layout_constraintStart_toEndOf="@id/phone_text"
+        app:layout_constraintEnd_toStartOf="@id/authcall_btn"
+        app:layout_constraintTop_toBottomOf="@id/auth_text"/>
+
+    <Button
+        android:id="@+id/authcall_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="인증요청"
+        android:textSize="16dp"
+        android:textColor="@color/btn"
+        android:background="@color/white"
+        style="@style/Widget.AppCompat.Button.Borderless"
+        android:layout_marginTop="20dp"
+        android:layout_marginRight="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/phone_input"
+        app:layout_constraintTop_toBottomOf="@id/auth_text"/>
+
+    <TextView
+        android:id="@+id/authnum_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="인증 번호"
+        android:textSize="16sp"
+        app:layout_constraintStart_toStartOf="@id/auth_text"
+        app:layout_constraintTop_toBottomOf="@id/phone_text"
+        android:layout_marginTop="36dp"/>
+
+    <EditText
+        android:id="@+id/authnum_input"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:text="01012340000"
+        android:background="#EAEAEA"
+        android:inputType="numberDecimal"
+        android:maxLength="11"
+        android:padding="8dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginLeft="32dp"
+        app:layout_constraintStart_toEndOf="@id/authnum_text"
+        app:layout_constraintEnd_toStartOf="@id/authcall_btn"
+        app:layout_constraintTop_toBottomOf="@id/phone_input"/>
+
+    <Button
+        android:id="@+id/reauth_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="인증 번호 재전송"
+        android:textSize="12dp"
+        android:textColor="@color/btn"
+        android:background="@color/white"
+        style="@style/Widget.AppCompat.Button.Borderless"
+        android:layout_marginTop="0dp"
+        app:layout_constraintStart_toStartOf="@id/authnum_input"
+        app:layout_constraintTop_toBottomOf="@id/authnum_input"/>
+
+    <Button
+        android:id="@+id/auth_btn"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="인증하기"
+        android:textSize="16dp"
+        android:textColor="@color/white"
+        android:background="@color/btn"
+        android:layout_marginTop="16dp"
+        android:layout_marginLeft="32dp"
+        android:layout_marginRight="32dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/reauth_btn"/>
+
+    <ProgressBar
+        android:id="@+id/loading"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="@id/auth_btn"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
