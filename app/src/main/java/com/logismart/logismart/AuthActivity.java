@@ -1,12 +1,14 @@
 package com.logismart.logismart;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
@@ -66,6 +68,8 @@ public class AuthActivity extends Activity {
 
                 pb.setVisibility(View.INVISIBLE);
 
+                Toast.makeText(AuthActivity.this, "인증 성공", Toast.LENGTH_SHORT).show();
+
                 signInWithPhoneAuthCredential(credential);
             }
 
@@ -74,6 +78,7 @@ public class AuthActivity extends Activity {
                 // This callback is invoked in an invalid request for verification is made,
                 // for instance if the the phone number format is not valid.
                 Log.w(TAG, "onVerificationFailed", e);
+                pb.setVisibility(View.INVISIBLE);
 
                 if (e instanceof FirebaseAuthInvalidCredentialsException) {
                     // Invalid request
@@ -92,20 +97,35 @@ public class AuthActivity extends Activity {
                 // Save verification ID and resending token so we can use them later
                 mVerificationId = verificationId;
                 mResendToken = token;
+
+                Toast.makeText(AuthActivity.this, "인증번호 전송", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onCodeAutoRetrievalTimeOut(@NonNull String verificationId) {
+                super.onCodeAutoRetrievalTimeOut(verificationId);
+                Log.d(TAG, "onCodeAutoRetrievalTimeOut: TimeOut");
+                pb.setVisibility(View.INVISIBLE);
+
+                mVerificationId = verificationId;
+                Toast.makeText(AuthActivity.this, "시간초과", Toast.LENGTH_SHORT).show();
+
             }
         };
 
         authCallBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startPhoneNumberVerification(phoneText.getText().toString());
+                String phonenumber = "+82" + phoneText.getText().toString().substring(1);
+                startPhoneNumberVerification(phonenumber); // Korea
             }
         });
 
         reAuthBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                resendVerificationCode(phoneText.getText().toString(), mResendToken);
+                String phonenumber = "+82" + phoneText.getText().toString().substring(1);
+                resendVerificationCode(phonenumber, mResendToken);
             }
         });
 
@@ -130,7 +150,7 @@ public class AuthActivity extends Activity {
         PhoneAuthOptions options =
                 PhoneAuthOptions.newBuilder(mAuth)
                         .setPhoneNumber(phoneNumber)                  // Phone number to verify
-                        .setTimeout(180L, TimeUnit.SECONDS) // Timeout and unit
+                        .setTimeout(60L, TimeUnit.SECONDS) // Timeout and unit
                         .setActivity(this)                           // Activity (for callback binding)
                         .setCallbacks(mCallbacks)                   // OnVerificationStateChangedCallbacks
                         .build();
@@ -146,7 +166,7 @@ public class AuthActivity extends Activity {
         PhoneAuthOptions options =
                 PhoneAuthOptions.newBuilder(mAuth)
                         .setPhoneNumber(phoneNumber)                 // Phone number to verify
-                        .setTimeout(180L, TimeUnit.SECONDS) // Timeout and unit
+                        .setTimeout(60L, TimeUnit.SECONDS) // Timeout and unit
                         .setActivity(this)                          // Activity (for callback binding)
                         .setCallbacks(mCallbacks)                   // OnVerificationStateChangedCallbacks
                         .setForceResendingToken(token)              // ForceResendingToken from callbacks
@@ -165,6 +185,12 @@ public class AuthActivity extends Activity {
 
                             FirebaseUser user = task.getResult().getUser();
                             // Update UI
+
+                            Intent intent = new Intent(AuthActivity.this, MainActivity.class);
+                            intent.putExtra("type", "driver");
+                            intent.putExtra("ble", "BLE's name~~~~~"); // 블루투스 이름
+//                            intent.putExtra("name", user); // user
+                            startActivity(intent);
                         } else {
                             // Sign in failed, display a message and update the UI
                             Log.w(TAG, "signInWithCredential:failure", task.getException());

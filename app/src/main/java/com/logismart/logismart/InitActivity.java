@@ -32,9 +32,9 @@ public class InitActivity extends AppCompatActivity {
         driver_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(InitActivity.this, MainActivity.class);
-                intent.putExtra("type", "driver");
-                intent.putExtra("ble", "BLE's name~~~~~"); // 블루투스 이름
+                Intent intent = new Intent(InitActivity.this, AuthActivity.class);
+//                intent.putExtra("type", "driver");
+//                intent.putExtra("ble", "BLE's name~~~~~"); // 블루투스 이름
                 startActivity(intent);
             }
         });
