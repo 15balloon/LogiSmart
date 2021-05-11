@@ -185,12 +185,7 @@ public class AuthActivity extends Activity {
 
                             FirebaseUser user = task.getResult().getUser();
                             // Update UI
-
-                            Intent intent = new Intent(AuthActivity.this, MainActivity.class);
-                            intent.putExtra("type", "driver");
-                            intent.putExtra("ble", "BLE's name~~~~~"); // 블루투스 이름
-//                            intent.putExtra("name", user); // user
-                            startActivity(intent);
+                            updateUI(user);
                         } else {
                             // Sign in failed, display a message and update the UI
                             Log.w(TAG, "signInWithCredential:failure", task.getException());
@@ -203,6 +198,10 @@ public class AuthActivity extends Activity {
     }
 
     private void updateUI(FirebaseUser user) {
-
+        Intent intent = new Intent(AuthActivity.this, MainActivity.class);
+        intent.putExtra("type", "driver");
+        intent.putExtra("ble", "LogiSmart"); // 블루투스 이름
+//                            intent.putExtra("name", user); // user
+        startActivity(intent);
     }
 }
