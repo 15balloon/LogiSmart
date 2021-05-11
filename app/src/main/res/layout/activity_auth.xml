@@ -42,6 +42,7 @@
         android:layout_height="40dp"
         android:hint="01012340000"
         android:text=""
+        android:textSize="16sp"
         android:background="#EAEAEA"
         android:inputType="numberDecimal"
         android:maxLength="11"
