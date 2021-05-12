@@ -18,9 +18,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.Build;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
@@ -35,9 +33,6 @@ import java.util.UUID;
 public class BluetoothLeService extends Service {
     private final static String TAG = BluetoothLeService.class.getSimpleName();
 
-    private enum QueueType {Connect, ConnectError, Read, IoError}
-
-
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
     private String mBluetoothDeviceAddress;
@@ -45,7 +40,6 @@ public class BluetoothLeService extends Service {
     private BluetoothGatt mBluetoothGatt;
     private int mConnectionState = STATE_DISCONNECTED;
 
-    private final Handler mainLooper = new Handler(Looper.getMainLooper());;
     private final IBinder mBinder = new LocalBinder();
 
     private StringBuilder stringBuilder = new StringBuilder();
@@ -82,7 +76,6 @@ public class BluetoothLeService extends Service {
                 Log.i(TAG, "Connected to GATT server." + gatt); // BluetoothGatt@5751321
                 // Attempts to discover services after successful connection.
                 Log.i(TAG, "Attempting to start service discovery: " + mBluetoothGatt.discoverServices());
-                // UUID 0xFFE0 / CHAR 0xFFE1 / -0000-1000-8000-00805F9B34FB
 
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 intentAction = ACTION_GATT_DISCONNECTED;
@@ -101,6 +94,7 @@ public class BluetoothLeService extends Service {
 //                    }
 //                    Log.i(TAG, "onServicesDiscovered UUID: " + gattService.getUuid().toString());
 //                }
+//                result ------
 //                Found Characteristic: 00002a00-0000-1000-8000-00805f9b34fb
 //                Found Characteristic: 00002a01-0000-1000-8000-00805f9b34fb
 //                Found Characteristic: 00002a02-0000-1000-8000-00805f9b34fb
@@ -156,26 +150,10 @@ public class BluetoothLeService extends Service {
                 dataString = stringBuilder.toString().substring(0, stringBuilder.toString().indexOf("\n"));
                 intent.putExtra(EXTRA_DATA, dataString);
                 stringBuilder.delete(0, stringBuilder.toString().indexOf("\n") + 1);
-
-                if (dataString != null) {
-                    Log.i("DATA", dataString);
-                    String[] uuid = dataString.split(" ");
-                    String[] data_item = uuid[1].split("/");
-                    switch (uuid[0]) {
-                        case "GPS":
-                            // TODO : update UI, data -> server
-                            break;
-                        case "Thermo":
-                            // update UI, data -> server
-                            break;
-                    }
-                }
-
-
+                sendBroadcast(intent);
             }
         }
-        Log.d(TAG, "broadcastUpdate: characteristic");
-        sendBroadcast(intent);
+
     }
 
     public class LocalBinder extends Binder {
@@ -187,7 +165,6 @@ public class BluetoothLeService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
-//        throw new UnsupportedOperationException("Not yet Implemented");
         Log.d(TAG, "onBind");
         return mBinder;
     }
@@ -207,44 +184,6 @@ public class BluetoothLeService extends Service {
      * @return Return true if the initialization is successful.
      */
 
-
-    void startForegroundService() {
-
-        Intent notificationIntent = new Intent(this, MainActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
-
-//        RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.notification_foreground);
-
-        NotificationCompat.Builder builder;
-        if (Build.VERSION.SDK_INT >= 26) {
-            String CHANNEL_ID = "service_channel";
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
-                    "smart_channel",
-                    NotificationManager.IMPORTANCE_DEFAULT);
-
-            ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE))
-                    .createNotificationChannel(channel);
-
-            builder = new NotificationCompat.Builder(this, CHANNEL_ID);
-        } else {
-            builder = new NotificationCompat.Builder(this);
-        }
-        builder.setSmallIcon(R.mipmap.ic_launcher)
-//                .setContent(remoteViews)
-                .setContentIntent(pendingIntent);
-
-        startForeground(1, builder.build());
-    }
-
-//    @Override
-//    public void onCreate() {
-//        super.onCreate();
-////        startForegroundService();
-////        stopForeground(true);
-//
-//        Log.d(TAG, "onCreate called");
-//    }
-
     private void createNotification() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel nc = new NotificationChannel(Constants.NOTIFICATION_CHANNEL, "Background service", NotificationManager.IMPORTANCE_LOW);
@@ -252,16 +191,11 @@ public class BluetoothLeService extends Service {
             NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
             nm.createNotificationChannel(nc);
         }
-//        ActivityManager activityManager = context.GetSystemService(Context.ActivityService) as ActivityManager;
-//        activityManager.MoveTaskToFront(MainActivity.MYTaskId, MoveTaskFlags.WithHome);
-//        Intent disconnectIntent = new Intent()
-//                .setAction(Constants.INTENT_ACTION_DISCONNECT);
         Intent restartIntent = new Intent()
                 .setClassName(this, Constants.INTENT_CLASS_MAIN_ACTIVITY)
                 .setAction(Intent.ACTION_MAIN)
-                .addCategory(Intent.CATEGORY_LAUNCHER);
-//        PendingIntent disconnectPendingIntent = PendingIntent.getBroadcast(this, 1, disconnectIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        PendingIntent restartPendingIntent = PendingIntent.getActivity(this, 1, restartIntent,  PendingIntent.FLAG_UPDATE_CURRENT);
+                .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        PendingIntent restartPendingIntent = PendingIntent.getActivity(this, 1, restartIntent,  0);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setColor(getResources().getColor(R.color.skyblue))
@@ -291,43 +225,12 @@ public class BluetoothLeService extends Service {
     }
 
     public void attach() {
-//        if(Looper.getMainLooper().getThread() != Thread.currentThread())
-//            throw new IllegalArgumentException("not in main thread");
         cancelNotification();
-        // use synchronized() to prevent new items in queue2
-        // new items will not be added to queue1 because mainLooper.post and attach() run in main thread
-//        synchronized (this) {
-////            this.listener = listener;
-//        }
-//
-//        for(QueueItem item : queue1) {
-//            switch(item.type) {
-//                case Connect:       listener.onSerialConnect      (); break;
-//                case ConnectError:  listener.onSerialConnectError (item.e); break;
-//                case Read:          listener.onSerialRead         (item.data); break;
-//                case IoError:       listener.onSerialIoError      (item.e); break;
-//            }
-//        }
-//
-//        for(QueueItem item : queue2) {
-//            switch(item.type) {
-//                case Connect:       listener.onSerialConnect      (); break;
-//                case ConnectError:  listener.onSerialConnectError (item.e); break;
-//                case Read:          listener.onSerialRead         (item.data); break;
-//                case IoError:       listener.onSerialIoError      (item.e); break;
-//            }
-//        }
-//        queue1.clear();
-//        queue2.clear();
     }
 
     public void detach() {
         if(mConnectionState > 0)
             createNotification();
-        // items already in event queue (posted before detach() to mainLooper) will end up in queue1
-        // items occurring later, will be moved directly to queue2
-        // detach() and mainLooper.post run in the main thread, so all items are caught
-//        listener = null;
     }
 
     @Override
