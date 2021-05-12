@@ -61,21 +61,20 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements OnMyChangeListener {
+public class MainDriverActivity extends AppCompatActivity implements OnMyChangeListener {
 
-    private static final String TAG = MainActivity.class.getSimpleName();
+    private static final String TAG = MainDriverActivity.class.getSimpleName();
 
     ThermoView ThermoView;
     ThermoGaugeView ThermoGaugeView;
 
     MapView mapView;
-    TextView bt_name; // ble name
+    TextView bt_name; // Connected ble name
 
-    String type; // 모드 (관리자/운반자)
-    String ble_name; // 운반자의 기기명
+    String ble_name; // Driver's ble name
 
     Button bt_btn; // BLE btn
-    Button exit_btn; // BLE 닫기 btn
+    Button exit_btn; // BLE exit btn
 
     ImageView ble_light; // BLE State light
     GradientDrawable drawable; // BLE State light drawable
@@ -117,7 +116,6 @@ public class MainActivity extends AppCompatActivity implements OnMyChangeListene
 
         setContentView(R.layout.activity_main);
 
-        TextView tv = findViewById(R.id.tv);
         bt_name = findViewById(R.id.BT_name);
         bt_btn = findViewById(R.id.BT_btn);
         exit_btn = findViewById((R.id.exit_btn));
@@ -125,35 +123,16 @@ public class MainActivity extends AppCompatActivity implements OnMyChangeListene
         drawable = (GradientDrawable) ContextCompat.getDrawable(this, R.drawable.light);
 
         Intent intent = getIntent();
-        type = intent.getStringExtra("type");
-
-        if (type.equals("admin")) {
-            // 여러 설정 변경
-
-            tv.setText(type);
-            bt_btn.setText("목록");
-        }
-        else {
-            ble_name = intent.getStringExtra("ble");
-            tv.setText(type);
-            bt_name.setSelected(true);
-            bt_name.setText(ble_name);
-        }
-
-        backPressCloseHandler = new BackPressCloseHandler(this);
+        ble_name = intent.getStringExtra("ble");
+        bt_name.setSelected(true);
+        bt_name.setText(ble_name);
 
         mHandler = new Handler();
         bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = bluetoothManager.getAdapter();
         mGattCharacteristics = new ArrayList<>();
-        mDeviceAddress = "";
-        mDeviceName = "";
         mBle = new BluetoothLeService();
-
-        upperThermo = 50;
-        lowerThermo = 0;
-        prevThermo = (upperThermo + lowerThermo) / 2;
-        startAngle = 270;
+        mDeviceAddress = "";
 
         Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
         bindService(gattServiceIntent, mServiceConnection_mBle, BIND_AUTO_CREATE);
@@ -165,14 +144,14 @@ public class MainActivity extends AppCompatActivity implements OnMyChangeListene
             public void onClick(View v) {
 
                 if (mBluetoothAdapter == null) {
-                    Toast.makeText(MainActivity.this, "블루투스 미지원 단말은 사용할 수 없습니다.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainDriverActivity.this, "블루투스 미지원 단말은 사용할 수 없습니다.", Toast.LENGTH_SHORT).show();
                 }
 
                 else if (mBluetoothAdapter.isEnabled()) { // 블루투스 ON 상태
 
                     permissionCheckLocation(); // Location 동의 dialog
 
-                    int locationcheck = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION);
+                    int locationcheck = ContextCompat.checkSelfPermission(MainDriverActivity.this, Manifest.permission.ACCESS_FINE_LOCATION);
 
                     if (locationcheck == PackageManager.PERMISSION_GRANTED) { // permission location check
 
@@ -193,6 +172,16 @@ public class MainActivity extends AppCompatActivity implements OnMyChangeListene
                 }
             }
         });
+
+        backPressCloseHandler = new BackPressCloseHandler(this);
+
+        mDeviceName = "";
+
+        // TODO : Server -> app
+        upperThermo = 50;
+        lowerThermo = 0;
+        prevThermo = (upperThermo + lowerThermo) / 2;
+        startAngle = 270;
 
         ThermoView = findViewById((R.id.thermoView));
         ThermoView.setOnMyChangeListener(this);
@@ -242,11 +231,11 @@ public class MainActivity extends AppCompatActivity implements OnMyChangeListene
     }
 
     private void permissionCheckLocation() { // 위치 퍼미션 체크
-        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(MainDriverActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             Log.d(TAG, "permissionCheckLocation: Success");
         }
         else {
-            ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1000);
+            ActivityCompat.requestPermissions(MainDriverActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1000);
         }
     }
 
@@ -280,7 +269,7 @@ public class MainActivity extends AppCompatActivity implements OnMyChangeListene
                         snackbar.setAction("권한 설정", new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-                                ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1000);
+                                ActivityCompat.requestPermissions(MainDriverActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1000);
                             }
                         });
                         snackbar.show();
@@ -305,7 +294,7 @@ public class MainActivity extends AppCompatActivity implements OnMyChangeListene
                     Log.d(TAG, "onActivityResult: Bluetooth Allow");
                 } else {
                     Log.d(TAG, "onActivityResult: Bluetooth Declined");
-                    Toast.makeText(MainActivity.this, "기기 연결을 위해 블루투스를 켜주세요.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainDriverActivity.this, "기기 연결을 위해 블루투스를 켜주세요.", Toast.LENGTH_SHORT).show();
                 }
                 break;
             }
@@ -320,7 +309,7 @@ public class MainActivity extends AppCompatActivity implements OnMyChangeListene
     }
 
     private void showDialogForPermissionLocation() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainDriverActivity.this);
         builder.setTitle("위치 정보 권한 설정");
         builder.setMessage("권한 거절로 인해 기능이 제한됩니다.\n" + "권한을 승인해주세요.");
         builder.setPositiveButton("권한 설정", new DialogInterface.OnClickListener() {
@@ -344,7 +333,7 @@ public class MainActivity extends AppCompatActivity implements OnMyChangeListene
 
     private void showDialogForLocationServiceSetting() {
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainDriverActivity.this);
         builder.setTitle("위치 서비스 설정");
         builder.setMessage("블루투스 연결을 위해서는\n" +
                             "위치 서비스 활성화가 필요합니다.\n" + "위치 서비스를 켜주세요.");
@@ -367,7 +356,7 @@ public class MainActivity extends AppCompatActivity implements OnMyChangeListene
     }
 
     private void ble_connect() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainDriverActivity.this);
         LayoutInflater inflater = getLayoutInflater();
         View view = inflater.inflate(R.layout.activity_ble, null);
         builder.setView(view);
@@ -453,7 +442,7 @@ public class MainActivity extends AppCompatActivity implements OnMyChangeListene
         public LeDeviceListAdapter() {
             super();
             mLeDevices = new ArrayList<BluetoothDevice>();
-            mInflator = MainActivity.this.getLayoutInflater();
+            mInflator = MainDriverActivity.this.getLayoutInflater();
         }
 
         public void addDevice(BluetoothDevice device) {
@@ -558,20 +547,11 @@ public class MainActivity extends AppCompatActivity implements OnMyChangeListene
                 @Override
                 public void run() {
                     if (result.getDevice().getName() != null) {
-                        // type
-                        if (type.equals("admin")) {
+                        if (result.getDevice().getName().contains(ble_name)) {
                             mLeDeviceListAdapter.addDevice(result.getDevice());
                             mLeDeviceListAdapter.notifyDataSetChanged();
                             Log.d(TAG, "Connect list: " + result.getDevice().getName());
                         }
-                        else {
-                            if (result.getDevice().getName().contains(ble_name)) {
-                                mLeDeviceListAdapter.addDevice(result.getDevice());
-                                mLeDeviceListAdapter.notifyDataSetChanged();
-                                Log.d(TAG, "Connect list: " + result.getDevice().getName());
-                            }
-                        }
-
                     }
                 }
             });

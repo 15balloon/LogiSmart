@@ -23,8 +23,7 @@ public class InitActivity extends AppCompatActivity {
         admin_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(InitActivity.this, MainActivity.class);
-                intent.putExtra("type", "admin");
+                Intent intent = new Intent(InitActivity.this, MainAdminActivity.class);
                 startActivity(intent);
             }
         });
@@ -33,8 +32,6 @@ public class InitActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(InitActivity.this, AuthActivity.class);
-//                intent.putExtra("type", "driver");
-//                intent.putExtra("ble", "BLE's name~~~~~"); // 블루투스 이름
                 startActivity(intent);
             }
         });

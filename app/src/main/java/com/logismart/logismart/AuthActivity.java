@@ -198,7 +198,7 @@ public class AuthActivity extends Activity {
     }
 
     private void updateUI(FirebaseUser user) {
-        Intent intent = new Intent(AuthActivity.this, MainActivity.class);
+        Intent intent = new Intent(AuthActivity.this, MainDriverActivity.class);
         intent.putExtra("type", "driver");
         intent.putExtra("ble", "LogiSmart"); // 블루투스 이름
 //                            intent.putExtra("name", user); // user
