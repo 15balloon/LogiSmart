@@ -7,15 +7,15 @@ import java.util.HashMap;
  */
 public class GattAttributes {
     private static HashMap<String, String> attributes = new HashMap();
-    public static String HEART_RATE_MEASUREMENT = "00002a37-0000-1000-8000-00805f9b34fb";
-    public static String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
+    public static String HM_10_CONF = "0000ffe0-0000-1000-8000-00805f9b34fb";
+    public static String HM_10 = "0000ffe1-0000-1000-8000-00805F9B34FB";
 
     static {
         // Sample Services.
-        attributes.put("0000180d-0000-1000-8000-00805f9b34fb", "Heart Rate Service");
-        attributes.put("0000180a-0000-1000-8000-00805f9b34fb", "Device Information Service");
+        attributes.put("0000ffe0-0000-1000-8000-00805f9b34fb", "HM 10 Serial");
+        attributes.put("00001800-0000-1000-8000-00805f9b34fb", "Device Information Service");
         // Sample Characteristics.
-        attributes.put(HEART_RATE_MEASUREMENT, "Heart Rate Measurement");
+        attributes.put(HM_10, "RX/TX data");
         attributes.put("00002a29-0000-1000-8000-00805f9b34fb", "Manufacturer Name String");
     }
 

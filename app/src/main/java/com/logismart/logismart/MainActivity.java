@@ -23,6 +23,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.GradientDrawable;
 import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Build;
@@ -38,6 +39,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -63,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
 
     View ThermoView;
     MapView mapView;
+    TextView bt_name; // ble name
 
     String type; // 모드 (관리자/운반자)
     String ble_name; // 운반자의 기기명
@@ -70,10 +73,13 @@ public class MainActivity extends AppCompatActivity {
     Button bt_btn; // BLE btn
     Button exit_btn; // BLE 닫기 btn
 
+    ImageView ble_light; // BLE State light
+    GradientDrawable drawable; // BLE State light drawable
+
     private LeDeviceListAdapter mLeDeviceListAdapter;
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothManager bluetoothManager;
-    private ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics;
+    private ArrayList<BluetoothGattCharacteristic> mGattCharacteristics;
     private String mDeviceAddress;
     private String mDeviceName;
     private static final int REQUEST_ENABLE_BT = 1;
@@ -83,6 +89,7 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothLeService mBle;
 
     private boolean mConnected = false;
+    private boolean initialStart = true;
 
     private BackPressCloseHandler backPressCloseHandler;
 
@@ -93,30 +100,19 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d(TAG, "onCreate called");
+
         setContentView(R.layout.activity_main);
 
         TextView tv = findViewById(R.id.tv);
-        TextView bt_name = findViewById(R.id.BT_name);
+        bt_name = findViewById(R.id.BT_name);
         bt_btn = findViewById(R.id.BT_btn);
         exit_btn = findViewById((R.id.exit_btn));
+        ble_light = findViewById(R.id.ble_light);
+        drawable = (GradientDrawable) ContextCompat.getDrawable(this, R.drawable.light);
 
         Intent intent = getIntent();
         type = intent.getStringExtra("type");
-
-        backPressCloseHandler = new BackPressCloseHandler(this);
-
-        mHandler = new Handler();
-        bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
-        mBluetoothAdapter = bluetoothManager.getAdapter();
-        mGattCharacteristics = new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
-        mDeviceAddress = "";
-        mDeviceName = "";
-        mBle = new BluetoothLeService();
-
-        Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
-        bindService(gattServiceIntent, mServiceConnection_mBle, BIND_AUTO_CREATE);
-
-        permissionCheckBLE();
 
         if (type.equals("admin")) {
             // 여러 설정 변경
@@ -130,6 +126,28 @@ public class MainActivity extends AppCompatActivity {
             bt_name.setSelected(true);
             bt_name.setText(ble_name);
         }
+
+        backPressCloseHandler = new BackPressCloseHandler(this);
+
+        mHandler = new Handler();
+        bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        mBluetoothAdapter = bluetoothManager.getAdapter();
+        mGattCharacteristics = new ArrayList<>();
+        mDeviceAddress = "";
+        mDeviceName = "";
+        mBle = new BluetoothLeService();
+
+        Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
+        bindService(gattServiceIntent, mServiceConnection_mBle, BIND_AUTO_CREATE);
+
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//            startForegroundService(gattServiceIntent);
+//        }
+//        else {
+//            startService(gattServiceIntent);
+//        }
+
+        permissionCheckBLE();
 
         bt_btn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -154,7 +172,7 @@ public class MainActivity extends AppCompatActivity {
                         else {
                             ble_connect();
                             // TODO: BLE Connect
-                            // foreground service 사용해서 앱 꺼도 연결 해제 안 되게
+                            // service 사용해서 앱 꺼도 연결 해제, 데이터 전송 중단 안 되게
                         }
                     }
                 }
@@ -360,7 +378,8 @@ public class MainActivity extends AppCompatActivity {
                 mDeviceAddress = device.getAddress();
                 mDeviceName = device.getName();
 
-                mBle.connect(mDeviceAddress);
+                Boolean result = mBle.connect(mDeviceAddress);
+                Log.d(TAG, "onItemClick: connect result - " + result);
 
                 if (mScanning) {
                     mBluetoothAdapter.getBluetoothLeScanner().stopScan(mScanCallback);
@@ -529,13 +548,13 @@ public class MainActivity extends AppCompatActivity {
                         if (type.equals("admin")) {
                             mLeDeviceListAdapter.addDevice(result.getDevice());
                             mLeDeviceListAdapter.notifyDataSetChanged();
-                            Log.d(TAG, "run: " + result.getDevice().getName());
+                            Log.d(TAG, "Connect list: " + result.getDevice().getName());
                         }
                         else {
                             if (result.getDevice().getName().contains(ble_name)) {
                                 mLeDeviceListAdapter.addDevice(result.getDevice());
                                 mLeDeviceListAdapter.notifyDataSetChanged();
-                                Log.d(TAG, "run: " + result.getDevice().getName());
+                                Log.d(TAG, "Connect list: " + result.getDevice().getName());
                             }
                         }
 
@@ -554,6 +573,9 @@ public class MainActivity extends AppCompatActivity {
                 Log.e(TAG, "Unable to initialize Bluetooth");
                 finish();
             }
+            else {
+                Log.d(TAG, "onServiceConnected: Initialize Bluetooth");
+            }
         }
 
         @Override
@@ -569,6 +591,8 @@ public class MainActivity extends AppCompatActivity {
 
                 case BluetoothLeService.ACTION_GATT_CONNECTED:
                     Log.d(TAG, "onReceive: CONNECTED");
+                    bt_name.setSelected(true);
+                    bt_name.setText(mDeviceName);
                     invalidateOptionsMenu();
 
                     break;
@@ -579,13 +603,17 @@ public class MainActivity extends AppCompatActivity {
                     break;
 
                 case BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED:
-                    if (mDeviceAddress != null && mBle != null)
+                    Log.d(TAG, "onReceive: Services Discovered");
+                    if (mDeviceAddress != null && mBle != null) {
                         displayGattServices(mBle.getSupportedGattServices());
+                        startDataRead();
+                    }
                     break;
 
                 case BluetoothLeService.ACTION_DATA_AVAILABLE:
+                    Log.d(TAG, "onReceive: Data available");
                     if (mBle != null)
-                        displayData(intent.getStringExtra(mBle.EXTRA_DATA));
+//                        displayData(intent.getStringExtra(mBle.EXTRA_DATA));
                     break;
 
             }
@@ -593,14 +621,23 @@ public class MainActivity extends AppCompatActivity {
     };
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d(TAG, "onStart called");
+        if(initialStart) {
+            initialStart = false;
+        }
+    }
+
+    @Override
     protected void onResume() {
+        Log.d(TAG, "onResume called");
         super.onResume();
         registerReceiver(mGattUpdateReceiver_mBle, makeGattUpdateIntentFilter());
 
         if (mBle != null && mDeviceAddress != null)
         {
-//            final boolean result = ;
-//            Log.d(TAG, "onResume: " + result);
+//            runOnUiThread(this::ble_connect);
         }
     }
 
@@ -615,40 +652,107 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onPause() {
+        Log.d(TAG, "onPause called");
         super.onPause();
-        unregisterReceiver(mGattUpdateReceiver_mBle);
+//        unregisterReceiver(mGattUpdateReceiver_mBle);
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        Log.d(TAG, "onRestart called");
+        if(mBle != null)
+            mBle.attach();
+    }
+
+    @Override
+    protected void onStop() {
+        Log.d(TAG, "onStop called");
+        if(mBle != null)
+            mBle.detach();
+        super.onStop();
     }
 
     @Override
     protected void onDestroy() {
+        Log.d(TAG, "onDestroy called");
         super.onDestroy();
-        unbindService(mServiceConnection_mBle);
-        mBle = null;
+//        unbindService(mServiceConnection_mBle);
+//        mBle = null;
     }
 
     private void displayGattServices(List<BluetoothGattService> gattServices) {
         if (gattServices == null) return;
-        ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristic = new ArrayList<>();
 
         for (BluetoothGattService gattService : gattServices) {
             List<BluetoothGattCharacteristic> gattCharacteristics = gattService.getCharacteristics();
-            ArrayList<BluetoothGattCharacteristic> characteristics = new ArrayList<BluetoothGattCharacteristic>();
 
             for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
-                characteristics.add(gattCharacteristic);
+                mGattCharacteristics.add(gattCharacteristic);
             }
-            mGattCharacteristic.add(characteristics);
         }
-        mGattCharacteristics.addAll(mGattCharacteristic);
+        Log.d(TAG, "displayGattServices: " + mGattCharacteristics);
+    }
+
+    public void startDataRead() {
+        if (mConnected) {
+            mConnected = false;
+            Log.d(TAG, "startDataRead: DisConnected!");
+            drawable.setColor(Color.RED);
+            ble_light.setImageDrawable(drawable);
+            mBle.disconnect();
+            mDeviceAddress = null;
+            mGattCharacteristics.clear();
+        } else {
+            mConnected = true;
+            drawable.setColor(Color.GREEN);
+            ble_light.setImageDrawable(drawable);
+            if (mConnected) {
+                try {
+                    Log.d(TAG, "startDataRead: mConnected True" + mGattCharacteristics);
+                    for (BluetoothGattCharacteristic characteristic : mGattCharacteristics) {
+                        if (characteristic != null) {
+                            ThreadItem(characteristic);
+                        }
+                    }
+
+                } catch (Exception e) {
+                    Log.d("Exception", e.getMessage());
+                }
+            }
+        }
+    }
+
+    public synchronized void ThreadItem(final BluetoothGattCharacteristic bluetoothGattCharacteristic) {
+
+        new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                if (mDeviceAddress != null && bluetoothGattCharacteristic != null) {
+                    try {
+                        Log.d(TAG, "run: ThreadItem");
+                        if (mBle != null)
+                            mBle.setCharacteristicNotification(bluetoothGattCharacteristic, true);
+                    } catch (Exception e) {
+                        Log.d("Exception", e.getMessage());
+                    }
+                }
+            }
+        }).start();
     }
 
     private void displayData(String data) {
         if (data != null) {
             Log.i("DATA", data);
-            String[] uuid = data.split(",");
-//            data_item = uuid[0].split(" ");
-            switch (uuid[1]) {
-                case "":
+            String[] uuid = data.split(" ");
+            String[] data_item = uuid[1].split("/");
+            switch (uuid[0]) {
+                case "GPS":
+                    // TODO : update UI, data -> server
+                    break;
+                case "Thermo":
+                    // update UI, data -> server
                     break;
             }
         }

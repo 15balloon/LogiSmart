@@ -1,5 +1,9 @@
 package com.logismart.logismart;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -13,8 +17,13 @@ import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Binder;
+import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.util.Log;
+
+import androidx.core.app.NotificationCompat;
 
 import java.util.List;
 import java.util.UUID;
@@ -26,11 +35,21 @@ import java.util.UUID;
 public class BluetoothLeService extends Service {
     private final static String TAG = BluetoothLeService.class.getSimpleName();
 
+    private enum QueueType {Connect, ConnectError, Read, IoError}
+
+
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
     private String mBluetoothDeviceAddress;
+    private String mBluetoothDeviceName;
     private BluetoothGatt mBluetoothGatt;
     private int mConnectionState = STATE_DISCONNECTED;
+
+    private final Handler mainLooper = new Handler(Looper.getMainLooper());;
+    private final IBinder mBinder = new LocalBinder();
+
+    private StringBuilder stringBuilder = new StringBuilder();
+    String dataString = "";
 
     private static final int STATE_DISCONNECTED = 0;
     private static final int STATE_CONNECTING = 1;
@@ -47,8 +66,8 @@ public class BluetoothLeService extends Service {
     public final static String EXTRA_DATA =
             "com.example.bluetooth.le.EXTRA_DATA";
 
-    public final static UUID UUID_HEART_RATE_MEASUREMENT =
-            UUID.fromString(GattAttributes.HEART_RATE_MEASUREMENT);
+    public final static UUID MY_UUID =
+            UUID.fromString(GattAttributes.HM_10_CONF);
 
     // Implements callback methods for GATT events that the app cares about.  For example,
     // connection change and services discovered.
@@ -60,10 +79,10 @@ public class BluetoothLeService extends Service {
                 intentAction = ACTION_GATT_CONNECTED;
                 mConnectionState = STATE_CONNECTED;
                 broadcastUpdate(intentAction);
-                Log.i(TAG, "Connected to GATT server.");
+                Log.i(TAG, "Connected to GATT server." + gatt); // BluetoothGatt@5751321
                 // Attempts to discover services after successful connection.
-                Log.i(TAG, "Attempting to start service discovery:" +
-                        mBluetoothGatt.discoverServices());
+                Log.i(TAG, "Attempting to start service discovery: " + mBluetoothGatt.discoverServices());
+                // UUID 0xFFE0 / CHAR 0xFFE1 / -0000-1000-8000-00805F9B34FB
 
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 intentAction = ACTION_GATT_DISCONNECTED;
@@ -76,6 +95,24 @@ public class BluetoothLeService extends Service {
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
+//                for (BluetoothGattService gattService : gatt.getServices()) {
+//                    for (BluetoothGattCharacteristic mCharacteristic : gattService.getCharacteristics()) {
+//                        Log.i(TAG, "Found Characteristic: " + mCharacteristic.getUuid().toString());
+//                    }
+//                    Log.i(TAG, "onServicesDiscovered UUID: " + gattService.getUuid().toString());
+//                }
+//                Found Characteristic: 00002a00-0000-1000-8000-00805f9b34fb
+//                Found Characteristic: 00002a01-0000-1000-8000-00805f9b34fb
+//                Found Characteristic: 00002a02-0000-1000-8000-00805f9b34fb
+//                Found Characteristic: 00002a03-0000-1000-8000-00805f9b34fb
+//                Found Characteristic: 00002a04-0000-1000-8000-00805f9b34fb
+//                onServicesDiscovered UUID: 00001800-0000-1000-8000-00805f9b34fb
+
+//                Found Characteristic: 00002a05-0000-1000-8000-00805f9b34fb
+//                onServicesDiscovered UUID: 00001801-0000-1000-8000-00805f9b34fb
+
+//                Found Characteristic: 0000ffe1-0000-1000-8000-00805f9b34fb
+//                onServicesDiscovered UUID: 0000ffe0-0000-1000-8000-00805f9b34fb
                 broadcastUpdate(ACTION_GATT_SERVICES_DISCOVERED);
             } else {
                 Log.w(TAG, "onServicesDiscovered received: " + status);
@@ -87,6 +124,7 @@ public class BluetoothLeService extends Service {
                                          BluetoothGattCharacteristic characteristic,
                                          int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
+                Log.d(TAG, "read " + new String(characteristic.getValue()));
                 broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
             }
         }
@@ -94,6 +132,7 @@ public class BluetoothLeService extends Service {
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt,
                                             BluetoothGattCharacteristic characteristic) {
+            Log.d(TAG, "onCharacteristicChanged");
             broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
         }
     };
@@ -110,40 +149,46 @@ public class BluetoothLeService extends Service {
         // This is special handling for the Heart Rate Measurement profile.  Data parsing is
         // carried out as per profile specifications:
         // http://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicViewer.aspx?u=org.bluetooth.characteristic.heart_rate_measurement.xml
-        if (UUID_HEART_RATE_MEASUREMENT.equals(characteristic.getUuid())) {
-            int flag = characteristic.getProperties();
-            int format = -1;
-            if ((flag & 0x01) != 0) {
-                format = BluetoothGattCharacteristic.FORMAT_UINT16;
-                Log.d(TAG, "Heart rate format UINT16.");
-            } else {
-                format = BluetoothGattCharacteristic.FORMAT_UINT8;
-                Log.d(TAG, "Heart rate format UINT8.");
-            }
-            final int heartRate = characteristic.getIntValue(format, 1);
-            Log.d(TAG, String.format("Received heart rate: %d", heartRate));
-            intent.putExtra(EXTRA_DATA, String.valueOf(heartRate));
-        } else {
-            // For all other profiles, writes the data formatted in HEX.
-            final byte[] data = characteristic.getValue();
-            if (data != null && data.length > 0) {
-                final StringBuilder stringBuilder = new StringBuilder(data.length);
-                for(byte byteChar : data)
-                    stringBuilder.append(String.format("%02X ", byteChar));
-                intent.putExtra(EXTRA_DATA, new String(data) + "\n" + stringBuilder.toString());
+        final byte[] data = characteristic.getValue();
+        if (data != null && data.length > 0) {
+            stringBuilder.append(new String(data));
+            if (stringBuilder.toString().contains("\n")) {
+                dataString = stringBuilder.toString().substring(0, stringBuilder.toString().indexOf("\n"));
+                intent.putExtra(EXTRA_DATA, dataString);
+                stringBuilder.delete(0, stringBuilder.toString().indexOf("\n") + 1);
+
+                if (dataString != null) {
+                    Log.i("DATA", dataString);
+                    String[] uuid = dataString.split(" ");
+                    String[] data_item = uuid[1].split("/");
+                    switch (uuid[0]) {
+                        case "GPS":
+                            // TODO : update UI, data -> server
+                            break;
+                        case "Thermo":
+                            // update UI, data -> server
+                            break;
+                    }
+                }
+
+
             }
         }
+        Log.d(TAG, "broadcastUpdate: characteristic");
         sendBroadcast(intent);
     }
 
     public class LocalBinder extends Binder {
         BluetoothLeService getService() {
+            Log.d(TAG, "getService");
             return BluetoothLeService.this;
         }
     }
 
     @Override
     public IBinder onBind(Intent intent) {
+//        throw new UnsupportedOperationException("Not yet Implemented");
+        Log.d(TAG, "onBind");
         return mBinder;
     }
 
@@ -156,13 +201,143 @@ public class BluetoothLeService extends Service {
         return super.onUnbind(intent);
     }
 
-    private final IBinder mBinder = new LocalBinder();
-
     /**
      * Initializes a reference to the local Bluetooth adapter.
      *
      * @return Return true if the initialization is successful.
      */
+
+
+    void startForegroundService() {
+
+        Intent notificationIntent = new Intent(this, MainActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
+
+//        RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.notification_foreground);
+
+        NotificationCompat.Builder builder;
+        if (Build.VERSION.SDK_INT >= 26) {
+            String CHANNEL_ID = "service_channel";
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
+                    "smart_channel",
+                    NotificationManager.IMPORTANCE_DEFAULT);
+
+            ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE))
+                    .createNotificationChannel(channel);
+
+            builder = new NotificationCompat.Builder(this, CHANNEL_ID);
+        } else {
+            builder = new NotificationCompat.Builder(this);
+        }
+        builder.setSmallIcon(R.mipmap.ic_launcher)
+//                .setContent(remoteViews)
+                .setContentIntent(pendingIntent);
+
+        startForeground(1, builder.build());
+    }
+
+//    @Override
+//    public void onCreate() {
+//        super.onCreate();
+////        startForegroundService();
+////        stopForeground(true);
+//
+//        Log.d(TAG, "onCreate called");
+//    }
+
+    private void createNotification() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel nc = new NotificationChannel(Constants.NOTIFICATION_CHANNEL, "Background service", NotificationManager.IMPORTANCE_LOW);
+            nc.setShowBadge(false);
+            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            nm.createNotificationChannel(nc);
+        }
+//        ActivityManager activityManager = context.GetSystemService(Context.ActivityService) as ActivityManager;
+//        activityManager.MoveTaskToFront(MainActivity.MYTaskId, MoveTaskFlags.WithHome);
+//        Intent disconnectIntent = new Intent()
+//                .setAction(Constants.INTENT_ACTION_DISCONNECT);
+        Intent restartIntent = new Intent()
+                .setClassName(this, Constants.INTENT_CLASS_MAIN_ACTIVITY)
+                .setAction(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_LAUNCHER);
+//        PendingIntent disconnectPendingIntent = PendingIntent.getBroadcast(this, 1, disconnectIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent restartPendingIntent = PendingIntent.getActivity(this, 1, restartIntent,  PendingIntent.FLAG_UPDATE_CURRENT);
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setColor(getResources().getColor(R.color.skyblue))
+                .setContentTitle(getResources().getString(R.string.app_name))
+                .setContentText(mBluetoothGatt != null ? "Connected to " + mBluetoothDeviceName : "Background Service")
+                .setContentIntent(restartPendingIntent)
+                .setOngoing(true);
+        // @drawable/ic_notification created with Android Studio -> New -> Image Asset using @color/colorPrimaryDark as background color
+        // Android < API 21 does not support vectorDrawables in notifications, so both drawables used here, are created as .png instead of .xml
+        Notification notification = builder.build();
+        startForeground(Constants.NOTIFY_MANAGER_START_FOREGROUND_SERVICE, notification);
+    }
+
+    private void cancelNotification() {
+        stopForeground(true);
+    }
+
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.d(TAG, "onStartCommand() called");
+        if (intent == null) {
+            return Service.START_STICKY; //서비스가 종료되어도 자동으로 다시 실행
+        } else {
+
+        }
+
+        return super.onStartCommand(intent, flags, startId);
+    }
+
+    public void attach() {
+//        if(Looper.getMainLooper().getThread() != Thread.currentThread())
+//            throw new IllegalArgumentException("not in main thread");
+        cancelNotification();
+        // use synchronized() to prevent new items in queue2
+        // new items will not be added to queue1 because mainLooper.post and attach() run in main thread
+//        synchronized (this) {
+////            this.listener = listener;
+//        }
+//
+//        for(QueueItem item : queue1) {
+//            switch(item.type) {
+//                case Connect:       listener.onSerialConnect      (); break;
+//                case ConnectError:  listener.onSerialConnectError (item.e); break;
+//                case Read:          listener.onSerialRead         (item.data); break;
+//                case IoError:       listener.onSerialIoError      (item.e); break;
+//            }
+//        }
+//
+//        for(QueueItem item : queue2) {
+//            switch(item.type) {
+//                case Connect:       listener.onSerialConnect      (); break;
+//                case ConnectError:  listener.onSerialConnectError (item.e); break;
+//                case Read:          listener.onSerialRead         (item.data); break;
+//                case IoError:       listener.onSerialIoError      (item.e); break;
+//            }
+//        }
+//        queue1.clear();
+//        queue2.clear();
+    }
+
+    public void detach() {
+        if(mConnectionState > 0)
+            createNotification();
+        // items already in event queue (posted before detach() to mainLooper) will end up in queue1
+        // items occurring later, will be moved directly to queue2
+        // detach() and mainLooper.post run in the main thread, so all items are caught
+//        listener = null;
+    }
+
+    @Override
+    public void onDestroy(){
+//        cancelNotification();
+//        disconnect();
+        super.onDestroy();
+        Log.d(TAG, "onDestroy() called");
+    }
+
     public boolean initialize() {
         // For API level 18 and above, get a reference to BluetoothAdapter through
         // BluetoothManager.
@@ -195,7 +370,7 @@ public class BluetoothLeService extends Service {
      */
     public boolean connect(final String address) {
         if (mBluetoothAdapter == null || address == null) {
-            Log.w(TAG, "BluetoothAdapter not initialized or unspecified address.");
+            Log.w(TAG, "BluetoothAdapter not initialized or unspecified address."+address);
             return false;
         }
 
@@ -218,9 +393,10 @@ public class BluetoothLeService extends Service {
         }
         // We want to directly connect to the device, so we are setting the autoConnect
         // parameter to false.
-        mBluetoothGatt = device.connectGatt(this, false, mGattCallback);
+        mBluetoothGatt = device.connectGatt(this, true, mGattCallback);
         Log.d(TAG, "Trying to create a new connection.");
         mBluetoothDeviceAddress = address;
+        mBluetoothDeviceName = mBluetoothGatt.getDevice().getName();
         mConnectionState = STATE_CONNECTING;
         return true;
     }
@@ -279,11 +455,11 @@ public class BluetoothLeService extends Service {
             return;
         }
         mBluetoothGatt.setCharacteristicNotification(characteristic, enabled);
-
-        // This is specific to Heart Rate Measurement.
-        if (UUID_HEART_RATE_MEASUREMENT.equals(characteristic.getUuid())) {
+        Log.d(TAG, "setCharacteristicNotification: " + characteristic);
+        // This is specific to HM-10.
+        if (MY_UUID.equals(characteristic.getUuid())) {
             BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
-                    UUID.fromString(GattAttributes.CLIENT_CHARACTERISTIC_CONFIG));
+                    UUID.fromString(GattAttributes.HM_10));
             descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
             mBluetoothGatt.writeDescriptor(descriptor);
         }
@@ -300,4 +476,5 @@ public class BluetoothLeService extends Service {
 
         return mBluetoothGatt.getServices();
     }
+
 }
