@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.BLUETOOTH"/>
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.REORDER_TASKS" />
+
 
     <application
         android:usesCleartextTraffic="true"
@@ -37,7 +40,7 @@
 
         <service android:name=".BluetoothLeService" android:enabled="true"/>
 
-        <meta-data android:name="com.kakao.sdk.AppKey" android:value="159a333c282e3acd255edbab5ccd4a25"/>
+        <meta-data android:name="com.kakao.sdk.AppKey" android:value="@string/kakaoapikey"/>
     </application>
 
 </manifest>
