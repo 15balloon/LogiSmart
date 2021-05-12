@@ -61,7 +61,12 @@
             <com.logismart.logismart.ThermoView
                 android:id="@+id/thermoView"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+                android:layout_height="wrap_content" />
+
+            <com.logismart.logismart.ThermoGaugeView
+                android:id="@+id/thermoGaugeView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
 
 <!--            <TextView-->
 <!--                android:id="@+id/temperature"-->

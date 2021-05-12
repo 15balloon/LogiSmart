@@ -1,6 +1,7 @@
 package com.logismart.logismart;
 
 import android.Manifest;
+import android.animation.ObjectAnimator;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
@@ -22,6 +23,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.graphics.Color;
+import android.graphics.Path;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.location.LocationManager;
@@ -59,11 +61,13 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements OnMyChangeListener {
 
     private static final String TAG = MainActivity.class.getSimpleName();
 
-    View ThermoView;
+    ThermoView ThermoView;
+    ThermoGaugeView ThermoGaugeView;
+
     MapView mapView;
     TextView bt_name; // ble name
 
@@ -75,6 +79,8 @@ public class MainActivity extends AppCompatActivity {
 
     ImageView ble_light; // BLE State light
     GradientDrawable drawable; // BLE State light drawable
+    MapPoint mapPoint;
+    MapPOIItem marker;
 
     private LeDeviceListAdapter mLeDeviceListAdapter;
     private BluetoothAdapter mBluetoothAdapter;
@@ -87,6 +93,13 @@ public class MainActivity extends AppCompatActivity {
     private Handler mHandler;
     private static final long SCAN_PERIOD = 30000; // 30sec
     private BluetoothLeService mBle;
+
+    private int upperThermo;
+    private int lowerThermo;
+    private float prevThermo;
+
+    private float startAngle;
+    private float sweepAngle;
 
     private boolean mConnected = false;
     private boolean initialStart = true;
@@ -137,15 +150,13 @@ public class MainActivity extends AppCompatActivity {
         mDeviceName = "";
         mBle = new BluetoothLeService();
 
+        upperThermo = 50;
+        lowerThermo = 0;
+        prevThermo = (upperThermo + lowerThermo) / 2;
+        startAngle = 270;
+
         Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
         bindService(gattServiceIntent, mServiceConnection_mBle, BIND_AUTO_CREATE);
-
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-//            startForegroundService(gattServiceIntent);
-//        }
-//        else {
-//            startService(gattServiceIntent);
-//        }
 
         permissionCheckBLE();
 
@@ -184,17 +195,20 @@ public class MainActivity extends AppCompatActivity {
         });
 
         ThermoView = findViewById((R.id.thermoView));
+        ThermoView.setOnMyChangeListener(this);
+
+        ThermoGaugeView = findViewById(R.id.thermoGaugeView);
 
 //        getHashKey();
 
         mapView = (MapView) findViewById(R.id.map_view);
-        MapPoint mapPoint = MapPoint.mapPointWithGeoCoord(37.28270048101858, 127.89990486148284);
+        mapPoint = MapPoint.mapPointWithGeoCoord(37.28270048101858, 127.89990486148284);
         mapView.setMapCenterPoint(mapPoint, true);
 
 //        MapCircle marker = new MapCircle(mapPoint, 15, android.graphics.Color.argb(255, 40, 80, 150), android.graphics.Color.argb(255, 50, 100, 200));
 //        mapView.addCircle(marker);
 
-        MapPOIItem marker = new MapPOIItem();
+        marker = new MapPOIItem();
         marker.setItemName("현위치");
         marker.setTag(0);
         marker.setMapPoint(mapPoint);
@@ -613,7 +627,7 @@ public class MainActivity extends AppCompatActivity {
                 case BluetoothLeService.ACTION_DATA_AVAILABLE:
                     Log.d(TAG, "onReceive: Data available");
                     if (mBle != null)
-//                        displayData(intent.getStringExtra(mBle.EXTRA_DATA));
+                        displayData(intent.getStringExtra(mBle.EXTRA_DATA));
                     break;
 
             }
@@ -621,23 +635,12 @@ public class MainActivity extends AppCompatActivity {
     };
 
     @Override
-    protected void onStart() {
-        super.onStart();
-        Log.d(TAG, "onStart called");
-        if(initialStart) {
-            initialStart = false;
-        }
-    }
-
-    @Override
     protected void onResume() {
         Log.d(TAG, "onResume called");
         super.onResume();
-        registerReceiver(mGattUpdateReceiver_mBle, makeGattUpdateIntentFilter());
-
-        if (mBle != null && mDeviceAddress != null)
-        {
-//            runOnUiThread(this::ble_connect);
+        if (initialStart) {
+            registerReceiver(mGattUpdateReceiver_mBle, makeGattUpdateIntentFilter());
+            initialStart = false;
         }
     }
 
@@ -655,6 +658,12 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "onPause called");
         super.onPause();
 //        unregisterReceiver(mGattUpdateReceiver_mBle);
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        Log.d(TAG, "onNewIntent called");
     }
 
     @Override
@@ -744,17 +753,49 @@ public class MainActivity extends AppCompatActivity {
 
     private void displayData(String data) {
         if (data != null) {
-            Log.i("DATA", data);
+            Log.i("Main DATA", data);
             String[] uuid = data.split(" ");
+            if (uuid[1].isEmpty())
+                return;
             String[] data_item = uuid[1].split("/");
             switch (uuid[0]) {
                 case "GPS":
-                    // TODO : update UI, data -> server
+                    // TODO : data -> server
+                    mapPoint = MapPoint.mapPointWithGeoCoord(Float.parseFloat(data_item[0]), Float.parseFloat(data_item[1]));
+                    mapView.setMapCenterPoint(mapPoint, true);
+                    marker.setMapPoint(mapPoint);
                     break;
                 case "Thermo":
-                    // update UI, data -> server
+                    // data -> server
+                    ThermoView.changeValueEvent(Float.parseFloat(data_item[1]));
+                    calculateAngle(Float.parseFloat(data_item[1]));
+                    gaugeAnimator();
                     break;
             }
+        }
+    }
+
+    @Override
+    public void onChange(float value) {
+        // push alarm when dangerous?
+        // change background color?
+    }
+
+    public void calculateAngle(float currentThermo) {
+        sweepAngle = (currentThermo - prevThermo) * 180 / (upperThermo - lowerThermo);
+        prevThermo = currentThermo;
+    }
+
+    public void gaugeAnimator() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            Path path = new Path();
+            path.arcTo(-360f, 0f, 340f, 700f, startAngle, sweepAngle, true);
+            ObjectAnimator animator = ObjectAnimator.ofFloat(ThermoGaugeView, View.X, View.Y, path);
+            animator.setDuration(300);
+            animator.start();
+            startAngle += sweepAngle;
+        } else {
+            // Create animator without using curved path
         }
     }
 
