@@ -3,11 +3,13 @@ package com.logismart.logismart;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.InputType;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -19,7 +21,6 @@ import com.google.firebase.FirebaseTooManyRequestsException;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthOptions;
 import com.google.firebase.auth.PhoneAuthProvider;
@@ -36,11 +37,20 @@ public class AuthActivity extends Activity {
     private PhoneAuthProvider.ForceResendingToken mResendToken;
     private PhoneAuthProvider.OnVerificationStateChangedCallbacks mCallbacks;
 
+    private Button backBtn;
     private Button authCallBtn;
     private Button reAuthBtn;
     private Button authBtn;
     private EditText phoneText;
     private EditText codeText;
+
+    private TextView personalText;
+    private TextView nameInfo;
+    private EditText nameText;
+    private TextView birthInfo;
+    private EditText birthText;
+    private Button completeBtn;
+
     private ProgressBar pb;
 
     @Override
@@ -49,11 +59,20 @@ public class AuthActivity extends Activity {
 
         setContentView(R.layout.activity_auth);
 
+        backBtn = findViewById(R.id.back_btn);
         authCallBtn = findViewById(R.id.authcall_btn);
         reAuthBtn = findViewById(R.id.reauth_btn);
         authBtn = findViewById(R.id.auth_btn);
         phoneText = (EditText) findViewById(R.id.phone_input);
         codeText = (EditText) findViewById(R.id.authnum_input);
+
+        personalText = findViewById(R.id.personal);
+        nameInfo = findViewById(R.id.name_text);
+        nameText = findViewById(R.id.name_input);
+        birthInfo = findViewById(R.id.birth_text);
+        birthText = findViewById(R.id.birth_input);
+        completeBtn = findViewById(R.id.complete_btn);
+
         pb = (ProgressBar) findViewById(R.id.loading);
 
         mAuth = FirebaseAuth.getInstance();
@@ -66,8 +85,6 @@ public class AuthActivity extends Activity {
                 // 2 - Auto-retrieval
                 Log.d(TAG, "onVerificationCompleted:" + credential);
 
-                pb.setVisibility(View.INVISIBLE);
-
                 Toast.makeText(AuthActivity.this, "인증 성공", Toast.LENGTH_SHORT).show();
 
                 signInWithPhoneAuthCredential(credential);
@@ -78,7 +95,8 @@ public class AuthActivity extends Activity {
                 // This callback is invoked in an invalid request for verification is made,
                 // for instance if the the phone number format is not valid.
                 Log.w(TAG, "onVerificationFailed", e);
-                pb.setVisibility(View.INVISIBLE);
+
+                updateUI(1);
 
                 if (e instanceof FirebaseAuthInvalidCredentialsException) {
                     // Invalid request
@@ -105,13 +123,21 @@ public class AuthActivity extends Activity {
             public void onCodeAutoRetrievalTimeOut(@NonNull String verificationId) {
                 super.onCodeAutoRetrievalTimeOut(verificationId);
                 Log.d(TAG, "onCodeAutoRetrievalTimeOut: TimeOut");
-                pb.setVisibility(View.INVISIBLE);
+
+                updateUI(1);
 
                 mVerificationId = verificationId;
                 Toast.makeText(AuthActivity.this, "시간초과", Toast.LENGTH_SHORT).show();
 
             }
         };
+
+        backBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
 
         authCallBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -132,8 +158,16 @@ public class AuthActivity extends Activity {
         authBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                pb.setVisibility(View.VISIBLE);
                 verifyPhoneNumberWithCode(mVerificationId, codeText.getText().toString());
+            }
+        });
+
+        completeBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                updateUI(3);
+                // app -> SQL
+                savetoSQL();
             }
         });
     }
@@ -142,8 +176,16 @@ public class AuthActivity extends Activity {
     public void onStart() {
         super.onStart();
         // Check if user is signed in (non-null) and update UI accordingly.
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        updateUI(currentUser);
+//        FirebaseUser currentUser = mAuth.getCurrentUser();
+
+        if (mAuth.getCurrentUser() != null) {
+            if (false) // TODO : SQL confirm
+                moveActivity();
+            else {
+                updateUI(0);
+                updateUI(2);
+            }
+        }
     }
 
     private void startPhoneNumberVerification(String phoneNumber) {
@@ -183,9 +225,9 @@ public class AuthActivity extends Activity {
                             // Sign in success, update UI with the signed-in user's information
                             Log.d(TAG, "signInWithCredential:success");
 
-                            FirebaseUser user = task.getResult().getUser();
+//                            FirebaseUser user = task.getResult().getUser();
                             // Update UI
-                            updateUI(user);
+                            updateUI(2);
                         } else {
                             // Sign in failed, display a message and update the UI
                             Log.w(TAG, "signInWithCredential:failure", task.getException());
@@ -197,11 +239,51 @@ public class AuthActivity extends Activity {
                 });
     }
 
-    private void updateUI(FirebaseUser user) {
+    private void savetoSQL() {
+        // app -> SQL
+    }
+
+    private void updateUI(int check) {
+        if (check == 0) { // click auth
+            authCallBtn.setClickable(false);
+            reAuthBtn.setClickable(false);
+            authBtn.setClickable(false);
+            phoneText.setInputType(InputType.TYPE_NULL);
+            codeText.setInputType(InputType.TYPE_NULL);
+            pb.setVisibility(View.VISIBLE);
+        }
+        else if (check == 1) { // fail auth
+            authCallBtn.setClickable(true);
+            reAuthBtn.setClickable(true);
+            authBtn.setClickable(true);
+            phoneText.setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            codeText.setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            pb.setVisibility(View.INVISIBLE);
+        }
+        else if (check == 2) { // success auth
+            pb.setVisibility(View.INVISIBLE);
+            personalText.setVisibility(View.VISIBLE);
+            nameInfo.setVisibility(View.VISIBLE);
+            nameText.setVisibility(View.VISIBLE);
+            birthInfo.setVisibility(View.VISIBLE);
+            birthText.setVisibility(View.VISIBLE);
+            completeBtn.setVisibility(View.VISIBLE);
+        }
+        else { // complete write personal info
+            nameText.setInputType(InputType.TYPE_NULL);
+            birthText.setInputType(InputType.TYPE_NULL);
+            completeBtn.setClickable(false);
+            pb.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void moveActivity() { // app -> SQL
         Intent intent = new Intent(AuthActivity.this, MainDriverActivity.class);
-        intent.putExtra("type", "driver");
-        intent.putExtra("ble", "LogiSmart"); // 블루투스 이름
-//                            intent.putExtra("name", user); // user
+        // From SQL
+        intent.putExtra("ble", "LogiSmart"); // ble name
+//        intent.putExtra("name", ); // user name
+//        intent.putExtra("from", ); // starting point
+//        intent.putExtra("to", ); // destination
         startActivity(intent);
     }
 }
