@@ -23,7 +23,7 @@ public class InitActivity extends AppCompatActivity {
         admin_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(InitActivity.this, MainAdminActivity.class);
+                Intent intent = new Intent(InitActivity.this, LoginActivity.class);
                 startActivity(intent);
             }
         });
