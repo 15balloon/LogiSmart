@@ -2,6 +2,7 @@ package com.logismart.logismart;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
@@ -27,6 +28,7 @@ import com.google.firebase.auth.PhoneAuthProvider;
 import com.google.gson.JsonObject;
 
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -39,6 +41,9 @@ public class AuthActivity extends Activity {
     private FirebaseAuth mAuth;
 
     private RetrofitService retrofit;
+
+    private SharedPreferences mPreferences;
+    private String SharedPrefFile = "com.logismart.android.SharedPreferences";
 
     private String mVerificationId;
     private PhoneAuthProvider.ForceResendingToken mResendToken;
@@ -86,6 +91,8 @@ public class AuthActivity extends Activity {
 
         retrofit = RetrofitBuilder.getRetrofit().create(RetrofitService.class);
 
+        mPreferences = getSharedPreferences(SharedPrefFile, MODE_PRIVATE);
+
         mCallbacks = new PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
 
             @Override
@@ -93,8 +100,6 @@ public class AuthActivity extends Activity {
                 // 1 - Instant verification
                 // 2 - Auto-retrieval
                 Log.d(TAG, "onVerificationCompleted:" + credential);
-
-                Toast.makeText(AuthActivity.this, "인증 성공", Toast.LENGTH_SHORT).show();
 
                 signInWithPhoneAuthCredential(credential);
             }
@@ -109,6 +114,7 @@ public class AuthActivity extends Activity {
 
                 if (e instanceof FirebaseAuthInvalidCredentialsException) {
                     // Invalid request
+                    Toast.makeText(AuthActivity.this, "인증 실패", Toast.LENGTH_SHORT).show();
                 } else if (e instanceof FirebaseTooManyRequestsException) {
                     // The SMS quota for the project has been exceeded
                 }
@@ -120,24 +126,22 @@ public class AuthActivity extends Activity {
             public void onCodeSent(@NonNull String verificationId,
                                    @NonNull PhoneAuthProvider.ForceResendingToken token) {
                 Log.d(TAG, "onCodeSent:" + verificationId);
-
                 // Save verification ID and resending token so we can use them later
+                updateUI(1);
+                Toast.makeText(AuthActivity.this, "인증번호 전송", Toast.LENGTH_SHORT).show();
                 mVerificationId = verificationId;
                 mResendToken = token;
-
-                Toast.makeText(AuthActivity.this, "인증번호 전송", Toast.LENGTH_SHORT).show();
             }
 
             @Override
             public void onCodeAutoRetrievalTimeOut(@NonNull String verificationId) {
                 super.onCodeAutoRetrievalTimeOut(verificationId);
-                Log.d(TAG, "onCodeAutoRetrievalTimeOut: TimeOut");
-
-                updateUI(1);
-
-                mVerificationId = verificationId;
-                Toast.makeText(AuthActivity.this, "시간초과", Toast.LENGTH_SHORT).show();
-
+                if (mAuth.getCurrentUser() == null) {
+                    Log.d(TAG, "onCodeAutoRetrievalTimeOut: TimeOut");
+                    updateUI(1);
+                    mVerificationId = verificationId;
+                    Toast.makeText(AuthActivity.this, "시간초과", Toast.LENGTH_SHORT).show();
+                }
             }
         };
 
@@ -151,7 +155,15 @@ public class AuthActivity extends Activity {
         authCallBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String phonenumber = "+82" + phoneText.getText().toString().substring(1);
+                String phone = phoneText.getText().toString().replace(" ", "");
+                if (phone.isEmpty() || !phone.startsWith("01") || phone.length() != 10 || !Pattern.matches("^[0-9]*$", phone)) {
+                    Toast.makeText(AuthActivity.this, "올바른 번호를 써주세요.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                authCallBtn.setClickable(false);
+                reAuthBtn.setClickable(true);
+                updateUI(0);
+                String phonenumber = "+82" + phone.substring(1);
                 startPhoneNumberVerification(phonenumber); // Korea
             }
         });
@@ -159,7 +171,13 @@ public class AuthActivity extends Activity {
         reAuthBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String phonenumber = "+82" + phoneText.getText().toString().substring(1);
+                String phone = phoneText.getText().toString().replace(" ", "");
+                if (phone.isEmpty() || !phone.startsWith("01") || phone.length() != 10 || !Pattern.matches("^[0-9]*$", phone)) {
+                    Toast.makeText(AuthActivity.this, "올바른 번호를 써주세요.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                updateUI(0);
+                String phonenumber = "+82" + phone.substring(1);
                 resendVerificationCode(phonenumber, mResendToken);
             }
         });
@@ -167,6 +185,7 @@ public class AuthActivity extends Activity {
         authBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                updateUI(0);
                 verifyPhoneNumberWithCode(mVerificationId, codeText.getText().toString());
             }
         });
@@ -179,6 +198,8 @@ public class AuthActivity extends Activity {
                 savetoSQL();
             }
         });
+
+        reAuthBtn.setClickable(false);
     }
 
     @Override
@@ -188,7 +209,10 @@ public class AuthActivity extends Activity {
 //        FirebaseUser currentUser = mAuth.getCurrentUser();
 
         if (mAuth.getCurrentUser() != null) {
-            if (false) // TODO : SQL confirm
+            Log.d(TAG, "onStart: mAuth exist");
+            String data = mPreferences.getString("name", "nothing");
+            if (data != "nothing")
+//            if (true)
                 moveActivity();
             else {
                 updateUI(0);
@@ -210,6 +234,7 @@ public class AuthActivity extends Activity {
 
     private void verifyPhoneNumberWithCode(String verificationId, String code) {
         PhoneAuthCredential credential = PhoneAuthProvider.getCredential(verificationId, code);
+        signInWithPhoneAuthCredential(credential);
     }
 
     private void resendVerificationCode(String phoneNumber,
@@ -233,13 +258,16 @@ public class AuthActivity extends Activity {
                         if (task.isSuccessful()) {
                             // Sign in success, update UI with the signed-in user's information
                             Log.d(TAG, "signInWithCredential:success");
-
+                            Toast.makeText(AuthActivity.this, "인증 성공", Toast.LENGTH_SHORT).show();
 //                            FirebaseUser user = task.getResult().getUser();
+                            savetoSharedPrefPhone(phoneText.getText().toString());
                             // Update UI
                             updateUI(2);
                         } else {
                             // Sign in failed, display a message and update the UI
                             Log.w(TAG, "signInWithCredential:failure", task.getException());
+                            updateUI(1);
+                            Toast.makeText(AuthActivity.this, "인증 실패", Toast.LENGTH_SHORT).show();
                             if (task.getException() instanceof FirebaseAuthInvalidCredentialsException) {
                                 // The verification code entered was invalid
                             }
@@ -251,26 +279,53 @@ public class AuthActivity extends Activity {
     private void savetoSQL() {
         // app -> SQL
         // GSON parsing confirm
-        retrofit.save_info(nameText.getText().toString(),
-                            birthText.getText().toString(),
-                            phoneText.getText().toString())
+        String name = nameText.getText().toString();
+        String birth = birthText.getText().toString();
+        String phone = mPreferences.getString("phone", "null");
+        retrofit.save_info(name, birth, phone)
                             .enqueue(new Callback<JsonObject>() {
                                 @Override
                                 public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
-                                    JsonObject result = response.body();
-                                    if (result.get("RESULT").equals("SUCCESS")) {
+
+                                    if (response.isSuccessful()) {
                                         Log.d(TAG, "onResponse: SUCCESS");
+                                        Toast.makeText(AuthActivity.this, "전송 성공", Toast.LENGTH_SHORT).show();
+                                        savetoSharedPrefName(name);
+
                                     }
                                     else {
                                         Log.d(TAG, "onResponse: FAIL");
+                                        updateUI(4);
+                                        Toast.makeText(AuthActivity.this, "전송 실패", Toast.LENGTH_SHORT).show();
                                     }
                                 }
 
                                 @Override
                                 public void onFailure(Call<JsonObject> call, Throwable t) {
                                     Log.d(TAG, "onFailure");
+                                    t.printStackTrace();
+                                    updateUI(4);
+                                    Toast.makeText(AuthActivity.this, "전송 실패", Toast.LENGTH_SHORT).show();
                                 }
                             });
+    }
+
+    private void savetoSharedPrefPhone(String phone) {
+        SharedPreferences.Editor preferencesEditor = mPreferences.edit();
+
+        // data
+        preferencesEditor.putString("phone", phone);
+
+        preferencesEditor.apply();
+    }
+
+    private void savetoSharedPrefName(String name) {
+        SharedPreferences.Editor preferencesEditor = mPreferences.edit();
+
+        // data
+        preferencesEditor.putString("name", name);
+
+        preferencesEditor.apply();
     }
 
     private void updateUI(int check) {
@@ -283,9 +338,10 @@ public class AuthActivity extends Activity {
             pb.setVisibility(View.VISIBLE);
         }
         else if (check == 1) { // fail auth
-            authCallBtn.setClickable(true);
             reAuthBtn.setClickable(true);
             authBtn.setClickable(true);
+            phoneText.setClickable(true);
+            codeText.setClickable(true);
             phoneText.setInputType(InputType.TYPE_CLASS_PHONE);
             codeText.setInputType(InputType.TYPE_CLASS_PHONE);
             pb.setVisibility(View.INVISIBLE);
@@ -299,21 +355,30 @@ public class AuthActivity extends Activity {
             birthText.setVisibility(View.VISIBLE);
             completeBtn.setVisibility(View.VISIBLE);
         }
-        else { // complete write personal info
+        else if (check == 3) { // complete write personal info
             nameText.setInputType(InputType.TYPE_NULL);
             birthText.setInputType(InputType.TYPE_NULL);
             completeBtn.setClickable(false);
             pb.setVisibility(View.VISIBLE);
         }
+
+        else if (check == 4) { // fail to response personal info
+            nameText.setInputType(InputType.TYPE_CLASS_TEXT);
+            birthText.setInputType(InputType.TYPE_CLASS_PHONE);
+            completeBtn.setClickable(true);
+            pb.setVisibility(View.INVISIBLE);
+        }
     }
 
     private void moveActivity() { // app -> SQL
-        Intent intent = new Intent(AuthActivity.this, MainDriverActivity.class);
+        Intent intent = new Intent(AuthActivity.this, WaitActivity.class);
         // From SQL
-        intent.putExtra("ble", "LogiSmart"); // ble name
+//        intent.putExtra("ble", "LogiSmart"); // ble name
 //        intent.putExtra("name", ); // user name
 //        intent.putExtra("from", ); // starting point
 //        intent.putExtra("to", ); // destination
         startActivity(intent);
     }
+
+    // implementation 'com.google.code:gson:gson:2.8.5'
 }
