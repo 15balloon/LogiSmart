@@ -161,8 +161,6 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
 
                         else {
                             ble_connect();
-                            // TODO: BLE Connect
-                            // service 사용해서 앱 꺼도 연결 해제, 데이터 전송 중단 안 되게
                         }
                     }
                 }

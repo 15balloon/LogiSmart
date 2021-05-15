@@ -24,14 +24,21 @@ import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
 import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthOptions;
 import com.google.firebase.auth.PhoneAuthProvider;
+import com.google.gson.JsonObject;
 
 import java.util.concurrent.TimeUnit;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class AuthActivity extends Activity {
 
     private static final String TAG = "AuthActivity";
 
     private FirebaseAuth mAuth;
+
+    private RetrofitService retrofit;
 
     private String mVerificationId;
     private PhoneAuthProvider.ForceResendingToken mResendToken;
@@ -76,6 +83,8 @@ public class AuthActivity extends Activity {
         pb = (ProgressBar) findViewById(R.id.loading);
 
         mAuth = FirebaseAuth.getInstance();
+
+        retrofit = RetrofitBuilder.getRetrofit().create(RetrofitService.class);
 
         mCallbacks = new PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
 
@@ -241,6 +250,27 @@ public class AuthActivity extends Activity {
 
     private void savetoSQL() {
         // app -> SQL
+        // GSON parsing confirm
+        retrofit.save_info(nameText.getText().toString(),
+                            birthText.getText().toString(),
+                            phoneText.getText().toString())
+                            .enqueue(new Callback<JsonObject>() {
+                                @Override
+                                public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
+                                    JsonObject result = response.body();
+                                    if (result.get("RESULT").equals("SUCCESS")) {
+                                        Log.d(TAG, "onResponse: SUCCESS");
+                                    }
+                                    else {
+                                        Log.d(TAG, "onResponse: FAIL");
+                                    }
+                                }
+
+                                @Override
+                                public void onFailure(Call<JsonObject> call, Throwable t) {
+                                    Log.d(TAG, "onFailure");
+                                }
+                            });
     }
 
     private void updateUI(int check) {
@@ -256,8 +286,8 @@ public class AuthActivity extends Activity {
             authCallBtn.setClickable(true);
             reAuthBtn.setClickable(true);
             authBtn.setClickable(true);
-            phoneText.setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL);
-            codeText.setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            phoneText.setInputType(InputType.TYPE_CLASS_PHONE);
+            codeText.setInputType(InputType.TYPE_CLASS_PHONE);
             pb.setVisibility(View.INVISIBLE);
         }
         else if (check == 2) { // success auth
