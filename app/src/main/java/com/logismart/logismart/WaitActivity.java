@@ -28,6 +28,11 @@ public class WaitActivity extends AppCompatActivity {
         super.onStart();
 
         // TODO : admin confirm check
+//        if (confirm) {
+//            Intent intent = new Intent(WaitActivity.this, MainDriverActivity.class);
+//            intent.putExtra("ble", );
+//            startActivity(intent);
+//        }
 
     }
 

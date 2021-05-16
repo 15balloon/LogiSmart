@@ -1,15 +1,16 @@
 package com.logismart.logismart;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -63,7 +64,8 @@ public class AuthActivity extends Activity {
     private EditText birthText;
     private Button completeBtn;
 
-    private ProgressBar pb;
+//    private ProgressBar pb;
+    private ProgressDialog customProgressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,10 +73,17 @@ public class AuthActivity extends Activity {
 
         setContentView(R.layout.activity_auth);
 
+        BtnOnClick btnOnClick = new BtnOnClick();
+
         backBtn = findViewById(R.id.back_btn);
+        backBtn.setOnClickListener(btnOnClick);
         authCallBtn = findViewById(R.id.authcall_btn);
+        authCallBtn.setOnClickListener(btnOnClick);
         reAuthBtn = findViewById(R.id.reauth_btn);
+        reAuthBtn.setOnClickListener(btnOnClick);
         authBtn = findViewById(R.id.auth_btn);
+        authBtn.setOnClickListener(btnOnClick);
+
         phoneText = (EditText) findViewById(R.id.phone_input);
         codeText = (EditText) findViewById(R.id.authnum_input);
 
@@ -84,10 +93,14 @@ public class AuthActivity extends Activity {
         birthInfo = findViewById(R.id.birth_text);
         birthText = findViewById(R.id.birth_input);
         completeBtn = findViewById(R.id.complete_btn);
+        completeBtn.setOnClickListener(btnOnClick);
 
-        pb = (ProgressBar) findViewById(R.id.loading);
+//        pb = (ProgressBar) findViewById(R.id.loading);
+
+        customProgressDialog = new ProgressDialog(this);
 
         mAuth = FirebaseAuth.getInstance();
+        mVerificationId = "";
 
         retrofit = RetrofitBuilder.getRetrofit().create(RetrofitService.class);
 
@@ -145,61 +158,12 @@ public class AuthActivity extends Activity {
             }
         };
 
-        backBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                finish();
-            }
-        });
-
-        authCallBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String phone = phoneText.getText().toString().replace(" ", "");
-                if (phone.isEmpty() || !phone.startsWith("01") || phone.length() != 10 || !Pattern.matches("^[0-9]*$", phone)) {
-                    Toast.makeText(AuthActivity.this, "올바른 번호를 써주세요.", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                authCallBtn.setClickable(false);
-                reAuthBtn.setClickable(true);
-                updateUI(0);
-                String phonenumber = "+82" + phone.substring(1);
-                startPhoneNumberVerification(phonenumber); // Korea
-            }
-        });
-
-        reAuthBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String phone = phoneText.getText().toString().replace(" ", "");
-                if (phone.isEmpty() || !phone.startsWith("01") || phone.length() != 10 || !Pattern.matches("^[0-9]*$", phone)) {
-                    Toast.makeText(AuthActivity.this, "올바른 번호를 써주세요.", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                updateUI(0);
-                String phonenumber = "+82" + phone.substring(1);
-                resendVerificationCode(phonenumber, mResendToken);
-            }
-        });
-
-        authBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                updateUI(0);
-                verifyPhoneNumberWithCode(mVerificationId, codeText.getText().toString());
-            }
-        });
-
-        completeBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                updateUI(3);
-                // app -> SQL
-                savetoSQL();
-            }
-        });
-
         reAuthBtn.setClickable(false);
+
+//        customProgressDialog.setContentView(R.layout.dialog_progress);
+//        customProgressDialog.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+//        customProgressDialog.setCancelable(false);
+//        customProgressDialog.show();
     }
 
     @Override
@@ -207,16 +171,72 @@ public class AuthActivity extends Activity {
         super.onStart();
         // Check if user is signed in (non-null) and update UI accordingly.
 //        FirebaseUser currentUser = mAuth.getCurrentUser();
-
+        Log.d(TAG, "onStart called");
         if (mAuth.getCurrentUser() != null) {
             Log.d(TAG, "onStart: mAuth exist");
             String data = mPreferences.getString("name", "nothing");
             if (data != "nothing")
-//            if (true)
                 moveActivity();
             else {
                 updateUI(0);
                 updateUI(2);
+            }
+        }
+    }
+
+    class BtnOnClick implements View.OnClickListener {
+        @Override
+        public void onClick(View v) {
+            String phone = phoneText.getText().toString().replace(" ", "");
+            String phonenumber;
+            Log.d(TAG, "onClick: " + phone);
+            switch (v.getId()) {
+                case R.id.back_btn:
+                    finish();
+                    break;
+                case R.id.authcall_btn:
+                    Log.d(TAG, "onClick: " + !phone.startsWith("01") + (phone.length() < 10) + !Pattern.matches("^[0-9]*$", phone));
+                    if (!phone.startsWith("01") || phone.length() < 10 || !Pattern.matches("^[0-9]*$", phone)) {
+                        Toast.makeText(AuthActivity.this, "올바른 번호를 써주세요.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    authCallBtn.setClickable(false);
+                    reAuthBtn.setClickable(true);
+                    updateUI(0);
+                    phonenumber = "+82" + phone.substring(1);
+                    startPhoneNumberVerification(phonenumber); // Korea
+                    break;
+                case R.id.reauth_btn:
+                    if (!phone.startsWith("01") || phone.length() < 10 || !Pattern.matches("^[0-9]*$", phone)) {
+                        Toast.makeText(AuthActivity.this, "올바른 번호를 써주세요.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    updateUI(0);
+                    phonenumber = "+82" + phone.substring(1);
+                    resendVerificationCode(phonenumber, mResendToken);
+                    break;
+                case R.id.auth_btn:
+                    if (phone.isEmpty() || mVerificationId.isEmpty()) {
+                        Toast.makeText(AuthActivity.this, "먼저 인증 요청을 해주세요.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    String code = codeText.getText().toString();
+                    if (code.isEmpty()) {
+                        Toast.makeText(AuthActivity.this, "인증 번호를 써주세요.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    updateUI(0);
+                    verifyPhoneNumberWithCode(mVerificationId, code);
+                    break;
+                case R.id.complete_btn:
+                    if (nameText.getText().toString().isEmpty() || birthText.getText().toString().isEmpty()) {
+                        Toast.makeText(AuthActivity.this, "성명, 생년월일을 써주세요.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    updateUI(3);
+                    savetoSQL();
+                    break;
             }
         }
     }
@@ -278,19 +298,19 @@ public class AuthActivity extends Activity {
 
     private void savetoSQL() {
         // app -> SQL
-        // GSON parsing confirm
         String name = nameText.getText().toString();
         String birth = birthText.getText().toString();
         String phone = mPreferences.getString("phone", "null");
         retrofit.save_info(name, birth, phone)
-                            .enqueue(new Callback<JsonObject>() {
+                            .enqueue(new Callback<Void>() {
                                 @Override
-                                public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
+                                public void onResponse(Call<Void> call, Response<Void> response) {
+                                    Log.d(TAG, "onResponse: " + response);
 
                                     if (response.isSuccessful()) {
                                         Log.d(TAG, "onResponse: SUCCESS");
                                         Toast.makeText(AuthActivity.this, "전송 성공", Toast.LENGTH_SHORT).show();
-                                        savetoSharedPrefName(name);
+//                                        savetoSharedPrefName(name);
 
                                     }
                                     else {
@@ -301,7 +321,7 @@ public class AuthActivity extends Activity {
                                 }
 
                                 @Override
-                                public void onFailure(Call<JsonObject> call, Throwable t) {
+                                public void onFailure(Call<Void> call, Throwable t) {
                                     Log.d(TAG, "onFailure");
                                     t.printStackTrace();
                                     updateUI(4);
@@ -335,7 +355,8 @@ public class AuthActivity extends Activity {
             authBtn.setClickable(false);
             phoneText.setInputType(InputType.TYPE_NULL);
             codeText.setInputType(InputType.TYPE_NULL);
-            pb.setVisibility(View.VISIBLE);
+//            pb.setVisibility(View.VISIBLE);
+//            customProgressDialog.show();
         }
         else if (check == 1) { // fail auth
             reAuthBtn.setClickable(true);
@@ -344,10 +365,16 @@ public class AuthActivity extends Activity {
             codeText.setClickable(true);
             phoneText.setInputType(InputType.TYPE_CLASS_PHONE);
             codeText.setInputType(InputType.TYPE_CLASS_PHONE);
-            pb.setVisibility(View.INVISIBLE);
+//            pb.setVisibility(View.INVISIBLE);
+//            customProgressDialog.dismiss();
         }
         else if (check == 2) { // success auth
-            pb.setVisibility(View.INVISIBLE);
+//            pb.setVisibility(View.INVISIBLE);
+//            customProgressDialog.dismiss();
+
+            authBtn.setBackgroundColor(Color.GRAY);
+            authBtn.setText("인증완료");
+
             personalText.setVisibility(View.VISIBLE);
             nameInfo.setVisibility(View.VISIBLE);
             nameText.setVisibility(View.VISIBLE);
@@ -359,14 +386,16 @@ public class AuthActivity extends Activity {
             nameText.setInputType(InputType.TYPE_NULL);
             birthText.setInputType(InputType.TYPE_NULL);
             completeBtn.setClickable(false);
-            pb.setVisibility(View.VISIBLE);
+//            pb.setVisibility(View.VISIBLE);
+//            customProgressDialog.show();
         }
 
         else if (check == 4) { // fail to response personal info
             nameText.setInputType(InputType.TYPE_CLASS_TEXT);
             birthText.setInputType(InputType.TYPE_CLASS_PHONE);
             completeBtn.setClickable(true);
-            pb.setVisibility(View.INVISIBLE);
+//            pb.setVisibility(View.INVISIBLE);
+//            customProgressDialog.dismiss();
         }
     }
 
