@@ -1,6 +1,7 @@
 <%@ page import="java.sql.*" %>
+<%@ page import="org.json.simple.JSONObject" %>
 <%@ page language="java" contentType="text/html; charset=UTF-8"
-    pageEncoding="UTF-8"%>
+    pageEncoding="UTF-8" %>
     
 <%
 	// Reference : https://onedaycodeing.tistory.com/119
@@ -38,6 +39,15 @@
 		pstmt.setString(3, birth);
 		pstmt.setString(4, phone);
 		pstmt.executeUpdate();
+		
+	 	JSONObject jObject = new JSONObject();
+	 	
+	 	jObject.put("name", name);
+		jObject.put("birth", birth);
+		jObject.put("phone", phone);
+		jObject.put("id", max_id);
+		
+		out.println(jObject.toJSONString());   
 		
 	} catch (SQLException se) {
 		se.printStackTrace();
