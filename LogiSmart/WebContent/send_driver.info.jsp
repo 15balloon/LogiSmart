@@ -6,7 +6,7 @@
 	// Reference : https://onedaycodeing.tistory.com/119
 	// https://m.blog.naver.com/PostView.nhn?blogId=gsh960913&logNo=221442248808&proxyReferer=https:%2F%2Fwww.google.com%2F
 	
-	String jdbcDriver = "jdbc:mariadb://logismart.cafe24.com:3306/logismart";
+	String jdbcDriver = "jdbc:mysql://logismart.cafe24.com:3306/logismart";
 	String dbUser = "logismart";
 	String dbPass = "Logi2017253012";
 	
@@ -21,7 +21,7 @@
 		String birth = request.getParameter("birth");
 		String phone = request.getParameter("phone");
 		
-		String driver = "org.mariadb.jdbc.Driver";
+		String driver = "org.mysql.jdbc.Driver";
 		Class.forName(driver);
 		conn = DriverManager.getConnection(jdbcDriver, dbUser, dbPass);
 		stmt = conn.createStatement();
