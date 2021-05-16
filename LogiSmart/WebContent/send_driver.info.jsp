@@ -21,7 +21,7 @@
 		String birth = request.getParameter("birth");
 		String phone = request.getParameter("phone");
 		
-		String driver = "org.mysql.jdbc.Driver";
+		String driver = "com.mysql.jdbc.Driver";
 		Class.forName(driver);
 		conn = DriverManager.getConnection(jdbcDriver, dbUser, dbPass);
 		stmt = conn.createStatement();
