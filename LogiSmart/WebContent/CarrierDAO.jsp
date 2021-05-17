@@ -7,7 +7,7 @@
 	// Reference : https://onedaycodeing.tistory.com/119
 	// https://m.blog.naver.com/PostView.nhn?blogId=gsh960913&logNo=221442248808&proxyReferer=https:%2F%2Fwww.google.com%2F
 	
-	String jdbcDriver = "jdbc:mysql://logismart.cafe24.com:3306/logismart";
+	String jdbcDriver = "jdbc:mysql://localhost:3306/logismart";
 	String dbUser = "logismart";
 	String dbPass = "Logi2017253012";
 	
@@ -22,32 +22,38 @@
 		String birth = request.getParameter("birth");
 		String phone = request.getParameter("phone");
 		
+		System.out.println(name);
+		
 		String driver = "com.mysql.jdbc.Driver";
 		Class.forName(driver);
 		conn = DriverManager.getConnection(jdbcDriver, dbUser, dbPass);
 		stmt = conn.createStatement();
 		
-		
 		String max_id = "SELECT IFNULL(MAX(c_id) + 1, 1) FROM carriers c;";
 		result = stmt.executeQuery(max_id);
+		int id = result.getInt(0);
 		
-		String insert_carrier = "INSERT INTO carriers(c_id, c_name, c_birth, c_phone) VALUES(?, ?, ?, ?);";
-		
+		String insert_carrier = "INSERT INTO carriers(c_id, c_name, c_birth, c_phone) VALUES(?, ?, ?, ?)";
 		pstmt = conn.prepareStatement(insert_carrier);
-		pstmt.setInt(1, result.getInt(0));
+		
+		pstmt.setInt(1, id);
 		pstmt.setString(2, name);
 		pstmt.setString(3, birth);
 		pstmt.setString(4, phone);
-		pstmt.executeUpdate();
+		int insert = pstmt.executeUpdate();
 		
-	 	JSONObject jObject = new JSONObject();
-	 	
-	 	jObject.put("name", name);
-		jObject.put("birth", birth);
-		jObject.put("phone", phone);
-		jObject.put("id", max_id);
+		JSONObject jObject = new JSONObject();
 		
-		out.println(jObject.toJSONString());   
+		if (insert > 0) {
+			System.out.println("Insert Complete");
+		 	jObject.put("name", name);
+			jObject.put("birth", birth);
+			jObject.put("phone", phone);
+			jObject.put("id", id);
+			
+		}
+		System.out.println(jObject.toJSONString());
+		out.println(jObject.toJSONString());
 		
 	} catch (SQLException se) {
 		se.printStackTrace();
