@@ -21,48 +21,43 @@
 		
 		JSONObject jObject = new JSONObject();
 		
-		if (!name.isEmpty()) {
-			String driver = "com.mysql.jdbc.Driver";
-			Class.forName(driver);
-			conn = DriverManager.getConnection(jdbcDriver, dbUser, dbPass);
-			stmt = conn.createStatement();
+		String driver = "com.mysql.jdbc.Driver";
+		Class.forName(driver);
+		conn = DriverManager.getConnection(jdbcDriver, dbUser, dbPass);
+		stmt = conn.createStatement();
+		
+		String max_id = "SELECT IFNULL(MAX(c_id) + 1, 1) FROM carriers;";
+		result = stmt.executeQuery(max_id);
+		
+		System.out.println("name: " + name);
+		
+		result.next();
+		
+		int id = result.getInt(1);
+		System.out.println("id: " + id);
+		
+		String insert_carrier = "INSERT INTO carriers(c_id, c_name, c_birth, c_phone) VALUES(?, ?, ?, ?)";
+		
+		pstmt = conn.prepareStatement(insert_carrier);
+		pstmt.setInt(1, id);
+		pstmt.setString(2, name);
+		pstmt.setString(3, birth);
+		pstmt.setString(4, phone);
+		
+		int insert = pstmt.executeUpdate();
+		
+		if (insert > 0) {
+			System.out.println("Insert Complete");
+			jObject.put("result", "success");
+		 	jObject.put("name", name);
+			jObject.put("birth", birth);
+			jObject.put("phone", phone);
+			jObject.put("id", id);
 			
-			String max_id = "SELECT IFNULL(MAX(c_id) + 1, 1) FROM carriers;";
-			result = stmt.executeQuery(max_id);
-			
-			System.out.println("name: " + name);
-			
-			result.next();
-			
-			int id = result.getInt(1);
-			System.out.println("id: " + id);
-			
-			String insert_carrier = "INSERT INTO carriers(c_id, c_name, c_birth, c_phone) VALUES(?, ?, ?, ?)";
-			
-			pstmt = conn.prepareStatement(insert_carrier);
-			pstmt.setInt(1, id);
-			pstmt.setString(2, name);
-			pstmt.setString(3, birth);
-			pstmt.setString(4, phone);
-			
-			int insert = pstmt.executeUpdate();
-			
-			if (insert > 0) {
-				System.out.println("Insert Complete");
-				jObject.put("result", "success");
-			 	jObject.put("name", name);
-				jObject.put("birth", birth);
-				jObject.put("phone", phone);
-				jObject.put("id", id);
-				
-			}
-			else {
-				System.out.println("Insert Fail");
-				jObject.put("result", "fail");
-			}
 		}
 		else {
-			jObject.put("result", "nfail");
+			System.out.println("Insert Fail");
+			jObject.put("result", "fail");
 		}
 		System.out.println(jObject.toJSONString());
 		out.println(jObject.toJSONString());
