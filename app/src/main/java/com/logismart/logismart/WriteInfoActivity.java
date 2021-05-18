@@ -21,7 +21,7 @@ import java.net.URL;
 
 public class WriteInfoActivity extends AppCompatActivity {
 
-    private static final String TAG = "AuthActivity";
+    private static final String TAG = "WriteInfoActivity";
 
     private SharedPreferences mPreferences;
     final private String SharedPrefFile = "com.logismart.android.SharedPreferences";
@@ -44,7 +44,6 @@ public class WriteInfoActivity extends AppCompatActivity {
         mPreferences = getSharedPreferences(SharedPrefFile, MODE_PRIVATE);
 
         phone = mPreferences.getString("phone", "null");
-//        phone = "01066666666";
 
         backBtn = findViewById(R.id.back_btn);
         backBtn.setOnClickListener(new View.OnClickListener() {
@@ -65,11 +64,20 @@ public class WriteInfoActivity extends AppCompatActivity {
                     Toast.makeText(WriteInfoActivity.this, "성명, 생년월일을 써주세요.", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                Toast.makeText(WriteInfoActivity.this, "전송", Toast.LENGTH_SHORT).show();
                 savetoSQL();
             }
         });
 
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d(TAG, "onStart called");
+        if (!mPreferences.getString("name", "nothing").equals("nothing")) {
+            Log.d(TAG, "onStart: mAuth exist");
+            moveActivity();
+        }
     }
 
     @Override
@@ -78,44 +86,32 @@ public class WriteInfoActivity extends AppCompatActivity {
         finish();
     }
 
-    private void savetoSQL() {
+
+
+    private synchronized void savetoSQL() {
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    URL url = new URL("http://logismart.cafe24.com/CarrierDAO.jsp");
+                    URL url = new URL("http://logismart.cafe24.com:80/CarrierDAO.jsp");
                     HttpURLConnection connect = (HttpURLConnection) url.openConnection();
-//                    connect.setRequestProperty("User-Agent","Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36 Edg/90.0.818.62");
                     connect.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-                    connect.setRequestMethod("GET");
+                    connect.setRequestMethod("POST");
                     connect.setDoInput(true);
                     connect.setDoOutput(true);
                     connect.setDefaultUseCaches(false);
                     connect.setUseCaches(false);
                     connect.connect();
 
-                    // 응답 헤더의 정보를 모두 출력
-//                    for (Map.Entry<String, List<String>> header : connect.getHeaderFields().entrySet()) {
-//                        for (String value : header.getValue()) {
-//                            Log.d(TAG, header.getKey() + " : " + value);
-//                        }
-//                    }
-
                     String output = "name=" + name + "&birth=" + birth + "&phone=" + phone;
 
-                    StringBuffer outputbf = new StringBuffer();
-                    outputbf.append("name").append("=").append(name).append("&");
-                    outputbf.append("birth").append("=").append(birth).append("&");
-                    outputbf.append("phone").append("=").append(phone);
-
-                    OutputStreamWriter osw = new OutputStreamWriter(connect.getOutputStream(), "EUC-KR");
+                    OutputStreamWriter osw = new OutputStreamWriter(connect.getOutputStream(), "UTF-8");
 
                     osw.write(output);
                     Log.d(TAG, "run: sendMsg - " + output);
-//                    osw.write(outputbf.toString());
-//                    Log.d(TAG, "run: sendMsg - " + outputbf.toString());
 
                     osw.flush();
+                    osw.close();
 
                     int responseCode = connect.getResponseCode();
                     Log.d(TAG, "run: responseCode - " + responseCode);
@@ -125,7 +121,7 @@ public class WriteInfoActivity extends AppCompatActivity {
 
                         Log.d(TAG, "run: HTTP_OK");
 
-                        InputStreamReader tmp = new InputStreamReader(connect.getInputStream(), "EUC-KR");
+                        InputStreamReader tmp = new InputStreamReader(connect.getInputStream(), "UTF-8");
 
                         BufferedReader reader = new BufferedReader(tmp);
 
@@ -135,19 +131,26 @@ public class WriteInfoActivity extends AppCompatActivity {
                         while ((str = reader.readLine()) != null) {
                             builder.append(str + "\n");
                         }
-//                        reader.close();
-//                        tmp.close();
+                        reader.close();
+                        tmp.close();
 
                         String receiveMsg = builder.toString();
-
                         Log.d(TAG, "run: " + receiveMsg);
+
                         connect.disconnect();
-                        return;
+                        
+                        if (receiveMsg.contains("name")) {
+                            Log.d(TAG, "run: Insert Success");
+                        }
+                        else {
+                            Log.d(TAG, "run: Insert Fail");
+                        }
+
+                        getreceiveMsg(receiveMsg);
 
                     } else {
                         Log.d(TAG, "run: HTTP_FAIL");
                         connect.disconnect();
-                        return;
                     }
 
 
@@ -158,78 +161,24 @@ public class WriteInfoActivity extends AppCompatActivity {
         }).start();
     }
 
-//    Volley
-//    private void savetoSQL() {
-//        // app -> SQL
-//        String name = nameText.getText().toString();
-//        String birth = birthText.getText().toString();
-//        String phone = mPreferences.getString("phone", "null");
-//
-//        Response.Listener<String> responseListener = new Response.Listener<String>() {
-//            @Override
-//            public void onResponse(String response) {
-//                try {
-//                    Log.d(TAG, "onResponse: " + response);
-//                    if (response.trim().length() != 0) {
-//                        JSONObject jsonResponse = new JSONObject(response);
-//                        int id = jsonResponse.getInt("id");
-//                        if (id > 0) {
-//                            Toast.makeText(WriteInfoActivity.this, "전송 성공", Toast.LENGTH_SHORT).show();
-//                        }
-//                    }
-//                    Toast.makeText(WriteInfoActivity.this, "전송", Toast.LENGTH_SHORT).show();
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//        };
-//
-////        Toast.makeText(WriteInfoActivity.this, "전송 성공", Toast.LENGTH_SHORT).show();
-//
-//        try {
-//            RegisterRequest registerRequest = new RegisterRequest(name, birth, phone, responseListener);
-//            RequestQueue queue = Volley.newRequestQueue(WriteInfoActivity.this);
-//            queue.add(registerRequest);
-//            Log.d(TAG, "savetoSQL: queue add success");
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//    }
+    private void getreceiveMsg(String receiveMsg) {
+        if (!receiveMsg.isEmpty() && receiveMsg.contains("name")) { // success
+            savetoSharedPrefName(name);
+            moveActivity();
+        }
+    }
 
-//    private void savetoSharedPrefName(String name) {
-//        SharedPreferences.Editor preferencesEditor = mPreferences.edit();
-//
-//        // data
-//        preferencesEditor.putString("name", name);
-//
-//        preferencesEditor.apply();
-//    }
+    private void savetoSharedPrefName(String name) {
+        SharedPreferences.Editor preferencesEditor = mPreferences.edit();
 
-    public void updateUI(int check) {
-//        if (check == 3) { // complete write personal info
-//            nameText.setInputType(InputType.TYPE_NULL);
-//            birthText.setInputType(InputType.TYPE_NULL);
-//            completeBtn.setClickable(false);
-////            pb.setVisibility(View.VISIBLE);
-////            customProgressDialog.show();
-//        }
-//
-//        else if (check == 4) { // fail to response personal info
-//            nameText.setInputType(InputType.TYPE_CLASS_TEXT);
-//            birthText.setInputType(InputType.TYPE_CLASS_PHONE);
-//            completeBtn.setClickable(true);
-////            pb.setVisibility(View.INVISIBLE);
-////            customProgressDialog.dismiss();
-//        }
+        // data
+        preferencesEditor.putString("name", name);
+
+        preferencesEditor.apply();
     }
 
     private void moveActivity() {
         Intent intent = new Intent(WriteInfoActivity.this, WaitActivity.class);
-        // From SQL
-        intent.putExtra("ble", "LogiSmart"); // ble name
-//        intent.putExtra("name", ); // user name
-//        intent.putExtra("from", ); // starting point
-//        intent.putExtra("to", ); // destination
         startActivity(intent);
     }
 }
