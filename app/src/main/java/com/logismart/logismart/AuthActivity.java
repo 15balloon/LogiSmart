@@ -11,7 +11,6 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -30,17 +29,11 @@ import com.google.firebase.auth.PhoneAuthProvider;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-
 public class AuthActivity extends Activity {
 
     private static final String TAG = "AuthActivity";
 
     private FirebaseAuth mAuth;
-
-    private RetrofitService retrofit;
 
     private SharedPreferences mPreferences;
     private String SharedPrefFile = "com.logismart.android.SharedPreferences";
@@ -55,13 +48,6 @@ public class AuthActivity extends Activity {
     private Button authBtn;
     private EditText phoneText;
     private EditText codeText;
-
-    private TextView personalText;
-    private TextView nameInfo;
-    private EditText nameText;
-    private TextView birthInfo;
-    private EditText birthText;
-    private Button completeBtn;
 
 //    private ProgressBar pb;
     private ProgressDialog customProgressDialog;
@@ -86,22 +72,12 @@ public class AuthActivity extends Activity {
         phoneText = (EditText) findViewById(R.id.phone_input);
         codeText = (EditText) findViewById(R.id.authnum_input);
 
-        personalText = findViewById(R.id.personal);
-        nameInfo = findViewById(R.id.name_text);
-        nameText = findViewById(R.id.name_input);
-        birthInfo = findViewById(R.id.birth_text);
-        birthText = findViewById(R.id.birth_input);
-        completeBtn = findViewById(R.id.complete_btn);
-        completeBtn.setOnClickListener(btnOnClick);
-
 //        pb = (ProgressBar) findViewById(R.id.loading);
 
         customProgressDialog = new ProgressDialog(this);
 
         mAuth = FirebaseAuth.getInstance();
         mVerificationId = "";
-
-        retrofit = RetrofitBuilder.getRetrofit().create(RetrofitService.class);
 
         mPreferences = getSharedPreferences(SharedPrefFile, MODE_PRIVATE);
 
@@ -173,14 +149,14 @@ public class AuthActivity extends Activity {
         Log.d(TAG, "onStart called");
         if (mAuth.getCurrentUser() != null) {
             Log.d(TAG, "onStart: mAuth exist");
-            String data = mPreferences.getString("name", "nothing");
-            if (data != "nothing")
-                moveActivity();
-            else {
-                updateUI(0);
-                updateUI(2);
-            }
+            moveActivity();
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        finish();
     }
 
     class BtnOnClick implements View.OnClickListener {
@@ -188,7 +164,6 @@ public class AuthActivity extends Activity {
         public void onClick(View v) {
             String phone = phoneText.getText().toString().replace(" ", "");
             String phonenumber;
-            Log.d(TAG, "onClick: " + phone);
             switch (v.getId()) {
                 case R.id.back_btn:
                     finish();
@@ -227,14 +202,6 @@ public class AuthActivity extends Activity {
                     }
                     updateUI(0);
                     verifyPhoneNumberWithCode(mVerificationId, code);
-                    break;
-                case R.id.complete_btn:
-                    if (nameText.getText().toString().isEmpty() || birthText.getText().toString().isEmpty()) {
-                        Toast.makeText(AuthActivity.this, "성명, 생년월일을 써주세요.", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    updateUI(3);
-                    savetoSQL();
                     break;
             }
         }
@@ -281,7 +248,7 @@ public class AuthActivity extends Activity {
 //                            FirebaseUser user = task.getResult().getUser();
                             savetoSharedPrefPhone(phoneText.getText().toString());
                             // Update UI
-                            updateUI(2);
+                            moveActivity();
                         } else {
                             // Sign in failed, display a message and update the UI
                             Log.w(TAG, "signInWithCredential:failure", task.getException());
@@ -295,54 +262,11 @@ public class AuthActivity extends Activity {
                 });
     }
 
-    private void savetoSQL() {
-        // app -> SQL
-        String name = nameText.getText().toString();
-        String birth = birthText.getText().toString();
-        String phone = mPreferences.getString("phone", "null");
-        retrofit.save_info(name, birth, phone)
-                            .enqueue(new Callback<Void>() {
-                                @Override
-                                public void onResponse(Call<Void> call, Response<Void> response) {
-                                    Log.d(TAG, "onResponse: " + response);
-
-                                    if (response.isSuccessful()) {
-                                        Log.d(TAG, "onResponse: SUCCESS");
-                                        Toast.makeText(AuthActivity.this, "전송 성공", Toast.LENGTH_SHORT).show();
-//                                        savetoSharedPrefName(name);
-
-                                    }
-                                    else {
-                                        Log.d(TAG, "onResponse: FAIL");
-                                        updateUI(4);
-                                        Toast.makeText(AuthActivity.this, "전송 실패", Toast.LENGTH_SHORT).show();
-                                    }
-                                }
-
-                                @Override
-                                public void onFailure(Call<Void> call, Throwable t) {
-                                    Log.d(TAG, "onFailure");
-                                    t.printStackTrace();
-                                    updateUI(4);
-                                    Toast.makeText(AuthActivity.this, "전송 실패", Toast.LENGTH_SHORT).show();
-                                }
-                            });
-    }
-
     private void savetoSharedPrefPhone(String phone) {
         SharedPreferences.Editor preferencesEditor = mPreferences.edit();
 
         // data
         preferencesEditor.putString("phone", phone);
-
-        preferencesEditor.apply();
-    }
-
-    private void savetoSharedPrefName(String name) {
-        SharedPreferences.Editor preferencesEditor = mPreferences.edit();
-
-        // data
-        preferencesEditor.putString("name", name);
 
         preferencesEditor.apply();
     }
@@ -373,40 +297,11 @@ public class AuthActivity extends Activity {
 
             authBtn.setBackgroundColor(Color.GRAY);
             authBtn.setText("인증완료");
-
-            personalText.setVisibility(View.VISIBLE);
-            nameInfo.setVisibility(View.VISIBLE);
-            nameText.setVisibility(View.VISIBLE);
-            birthInfo.setVisibility(View.VISIBLE);
-            birthText.setVisibility(View.VISIBLE);
-            completeBtn.setVisibility(View.VISIBLE);
-        }
-        else if (check == 3) { // complete write personal info
-            nameText.setInputType(InputType.TYPE_NULL);
-            birthText.setInputType(InputType.TYPE_NULL);
-            completeBtn.setClickable(false);
-//            pb.setVisibility(View.VISIBLE);
-//            customProgressDialog.show();
-        }
-
-        else if (check == 4) { // fail to response personal info
-            nameText.setInputType(InputType.TYPE_CLASS_TEXT);
-            birthText.setInputType(InputType.TYPE_CLASS_PHONE);
-            completeBtn.setClickable(true);
-//            pb.setVisibility(View.INVISIBLE);
-//            customProgressDialog.dismiss();
         }
     }
 
     private void moveActivity() { // app -> SQL
-        Intent intent = new Intent(AuthActivity.this, WaitActivity.class);
-        // From SQL
-//        intent.putExtra("ble", "LogiSmart"); // ble name
-//        intent.putExtra("name", ); // user name
-//        intent.putExtra("from", ); // starting point
-//        intent.putExtra("to", ); // destination
+        Intent intent = new Intent(AuthActivity.this, WriteInfoActivity.class);
         startActivity(intent);
     }
-
-    // implementation 'com.google.code:gson:gson:2.8.5'
 }
