@@ -4,9 +4,7 @@ import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.os.Bundle;
-import android.text.InputType;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -22,6 +20,7 @@ import com.google.firebase.FirebaseTooManyRequestsException;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthOptions;
 import com.google.firebase.auth.PhoneAuthProvider;
@@ -49,8 +48,7 @@ public class AuthActivity extends Activity {
     private EditText phoneText;
     private EditText codeText;
 
-//    private ProgressBar pb;
-    private ProgressDialog customProgressDialog;
+    private ProgressDialog pd;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,9 +70,7 @@ public class AuthActivity extends Activity {
         phoneText = (EditText) findViewById(R.id.phone_input);
         codeText = (EditText) findViewById(R.id.authnum_input);
 
-//        pb = (ProgressBar) findViewById(R.id.loading);
-
-        customProgressDialog = new ProgressDialog(this);
+        pd = ProgressDialog.show(AuthActivity.this, "", "로딩중");
 
         mAuth = FirebaseAuth.getInstance();
         mVerificationId = "";
@@ -98,7 +94,7 @@ public class AuthActivity extends Activity {
                 // for instance if the the phone number format is not valid.
                 Log.w(TAG, "onVerificationFailed", e);
 
-                updateUI(1);
+                pd.dismiss();
 
                 if (e instanceof FirebaseAuthInvalidCredentialsException) {
                     // Invalid request
@@ -115,7 +111,7 @@ public class AuthActivity extends Activity {
                                    @NonNull PhoneAuthProvider.ForceResendingToken token) {
                 Log.d(TAG, "onCodeSent:" + verificationId);
                 // Save verification ID and resending token so we can use them later
-                updateUI(1);
+                pd.dismiss();
                 Toast.makeText(AuthActivity.this, "인증번호 전송", Toast.LENGTH_SHORT).show();
                 mVerificationId = verificationId;
                 mResendToken = token;
@@ -126,28 +122,24 @@ public class AuthActivity extends Activity {
                 super.onCodeAutoRetrievalTimeOut(verificationId);
                 if (mAuth.getCurrentUser() == null) {
                     Log.d(TAG, "onCodeAutoRetrievalTimeOut: TimeOut");
-                    updateUI(1);
+                    pd.dismiss();
                     mVerificationId = verificationId;
-                    Toast.makeText(AuthActivity.this, "시간초과", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(AuthActivity.this, "시간 초과", Toast.LENGTH_SHORT).show();
                 }
             }
         };
 
         reAuthBtn.setClickable(false);
-
-//        customProgressDialog.setContentView(R.layout.dialog_progress);
-//        customProgressDialog.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
-//        customProgressDialog.setCancelable(false);
-//        customProgressDialog.show();
+        pd.dismiss();
     }
 
     @Override
     public void onStart() {
         super.onStart();
         // Check if user is signed in (non-null) and update UI accordingly.
-//        FirebaseUser currentUser = mAuth.getCurrentUser();
+        FirebaseUser currentUser = mAuth.getCurrentUser();
         Log.d(TAG, "onStart called");
-        if (mAuth.getCurrentUser() != null) {
+        if (currentUser != null) {
             Log.d(TAG, "onStart: mAuth exist");
             moveActivity();
         }
@@ -176,7 +168,7 @@ public class AuthActivity extends Activity {
                     }
                     authCallBtn.setClickable(false);
                     reAuthBtn.setClickable(true);
-                    updateUI(0);
+                    pd.show();
                     phonenumber = "+82" + phone.substring(1);
                     startPhoneNumberVerification(phonenumber); // Korea
                     break;
@@ -185,7 +177,7 @@ public class AuthActivity extends Activity {
                         Toast.makeText(AuthActivity.this, "올바른 번호를 써주세요.", Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    updateUI(0);
+                    pd.show();
                     phonenumber = "+82" + phone.substring(1);
                     resendVerificationCode(phonenumber, mResendToken);
                     break;
@@ -200,7 +192,7 @@ public class AuthActivity extends Activity {
                         Toast.makeText(AuthActivity.this, "인증 번호를 써주세요.", Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    updateUI(0);
+                    pd.show();
                     verifyPhoneNumberWithCode(mVerificationId, code);
                     break;
             }
@@ -252,7 +244,7 @@ public class AuthActivity extends Activity {
                         } else {
                             // Sign in failed, display a message and update the UI
                             Log.w(TAG, "signInWithCredential:failure", task.getException());
-                            updateUI(1);
+                            pd.dismiss();
                             Toast.makeText(AuthActivity.this, "인증 실패", Toast.LENGTH_SHORT).show();
                             if (task.getException() instanceof FirebaseAuthInvalidCredentialsException) {
                                 // The verification code entered was invalid
@@ -271,36 +263,7 @@ public class AuthActivity extends Activity {
         preferencesEditor.apply();
     }
 
-    private void updateUI(int check) {
-        if (check == 0) { // click auth
-            authCallBtn.setClickable(false);
-            reAuthBtn.setClickable(false);
-            authBtn.setClickable(false);
-            phoneText.setInputType(InputType.TYPE_NULL);
-            codeText.setInputType(InputType.TYPE_NULL);
-//            pb.setVisibility(View.VISIBLE);
-//            customProgressDialog.show();
-        }
-        else if (check == 1) { // fail auth
-            reAuthBtn.setClickable(true);
-            authBtn.setClickable(true);
-            phoneText.setClickable(true);
-            codeText.setClickable(true);
-            phoneText.setInputType(InputType.TYPE_CLASS_PHONE);
-            codeText.setInputType(InputType.TYPE_CLASS_PHONE);
-//            pb.setVisibility(View.INVISIBLE);
-//            customProgressDialog.dismiss();
-        }
-        else if (check == 2) { // success auth
-//            pb.setVisibility(View.INVISIBLE);
-//            customProgressDialog.dismiss();
-
-            authBtn.setBackgroundColor(Color.GRAY);
-            authBtn.setText("인증완료");
-        }
-    }
-
-    private void moveActivity() { // app -> SQL
+    private void moveActivity() {
         Intent intent = new Intent(AuthActivity.this, WriteInfoActivity.class);
         startActivity(intent);
     }
