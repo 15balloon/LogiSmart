@@ -1,11 +1,11 @@
 package com.logismart.logismart;
 
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -20,7 +20,7 @@ public class LoginActivity extends AppCompatActivity {
     private EditText pwText;
     private Button loginBtn;
 
-    private ProgressBar pb;
+    private ProgressDialog pd;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -33,8 +33,7 @@ public class LoginActivity extends AppCompatActivity {
         pwText = (EditText) findViewById(R.id.pw_input);
         loginBtn = findViewById(R.id.login_btn);
 
-        pb = (ProgressBar) findViewById(R.id.login_loading);
-
+        pd = ProgressDialog.show(LoginActivity.this, "", "로딩중");
 
         backBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -46,12 +45,13 @@ public class LoginActivity extends AppCompatActivity {
         loginBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                pb.setVisibility(View.VISIBLE);
+                pd.show();
                 String id = idText.getText().toString().replace(" ", "");
                 String pw = pwText.getText().toString().replace(" ", "");
 
                 if (id.isEmpty() || pw.isEmpty()) {
                     Toast.makeText(LoginActivity.this, "아이디, 패스워드를 입력해주세요.", Toast.LENGTH_SHORT).show();
+                    pd.dismiss();
                     return;
                 }
                 // TODO : server -> app
