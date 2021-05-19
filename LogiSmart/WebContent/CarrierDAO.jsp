@@ -15,9 +15,9 @@
 	
 	try {
 		request.setCharacterEncoding("UTF-8");
-		String name = request.getParameter("name");
-		String birth = request.getParameter("birth");
-		String phone = request.getParameter("phone");
+		String name = request.getParameter("strings1");
+		String birth = request.getParameter("strings2");
+		String phone = request.getParameter("strings3");
 		
 		JSONObject jObject = new JSONObject();
 		
