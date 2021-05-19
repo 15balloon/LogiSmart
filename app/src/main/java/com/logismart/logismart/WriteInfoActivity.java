@@ -13,18 +13,19 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
 
 public class WriteInfoActivity extends AppCompatActivity {
 
     private static final String TAG = "WriteInfoActivity";
 
     private SharedPreferences mPreferences;
-    final private String SharedPrefFile = "com.logismart.android.SharedPreferences";
+    private final String SharedPrefFile = "com.logismart.android.SharedPreferences";
+
+    private Http http;
 
     private TextView backBtn;
     private EditText nameText;
@@ -42,6 +43,8 @@ public class WriteInfoActivity extends AppCompatActivity {
         setContentView(R.layout.activity_writeinfo);
 
         mPreferences = getSharedPreferences(SharedPrefFile, MODE_PRIVATE);
+
+        http = new Http();
 
         phone = mPreferences.getString("phone", "null");
 
@@ -74,7 +77,7 @@ public class WriteInfoActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         Log.d(TAG, "onStart called");
-        if (!mPreferences.getString("name", "nothing").equals("nothing")) {
+        if (mPreferences.getInt("id", 0) != 0) {
             Log.d(TAG, "onStart: mAuth exist");
             moveActivity();
         }
@@ -86,93 +89,44 @@ public class WriteInfoActivity extends AppCompatActivity {
         finish();
     }
 
-
-
     private synchronized void savetoSQL() {
         new Thread(new Runnable() {
             @Override
             public void run() {
+
                 try {
-                    URL url = new URL("http://logismart.cafe24.com:80/CarrierDAO.jsp");
-                    HttpURLConnection connect = (HttpURLConnection) url.openConnection();
-                    connect.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-                    connect.setRequestMethod("POST");
-                    connect.setDoInput(true);
-                    connect.setDoOutput(true);
-                    connect.setDefaultUseCaches(false);
-                    connect.setUseCaches(false);
-                    connect.connect();
-
-                    String output = "name=" + name + "&birth=" + birth + "&phone=" + phone;
-
-                    OutputStreamWriter osw = new OutputStreamWriter(connect.getOutputStream(), "UTF-8");
-
-                    osw.write(output);
-                    Log.d(TAG, "run: sendMsg - " + output);
-
-                    osw.flush();
-                    osw.close();
-
-                    int responseCode = connect.getResponseCode();
-                    Log.d(TAG, "run: responseCode - " + responseCode);
-                    Log.d(TAG, "run: responseURL - " + connect.getURL());
-
-                    if (responseCode == connect.HTTP_OK) {
-
-                        Log.d(TAG, "run: HTTP_OK");
-
-                        InputStreamReader tmp = new InputStreamReader(connect.getInputStream(), "UTF-8");
-
-                        BufferedReader reader = new BufferedReader(tmp);
-
-                        StringBuilder builder = new StringBuilder();
-
-                        String str;
-                        while ((str = reader.readLine()) != null) {
-                            builder.append(str + "\n");
-                        }
-                        reader.close();
-                        tmp.close();
-
-                        String receiveMsg = builder.toString();
-                        Log.d(TAG, "run: " + receiveMsg);
-
-                        connect.disconnect();
-                        
-                        if (receiveMsg.contains("name")) {
-                            Log.d(TAG, "run: Insert Success");
-                        }
-                        else {
-                            Log.d(TAG, "run: Insert Fail");
-                        }
-
-                        getreceiveMsg(receiveMsg);
-
-                    } else {
-                        Log.d(TAG, "run: HTTP_FAIL");
-                        connect.disconnect();
-                    }
-
-
-                } catch (Exception e) {
+                    String result = http.Http(ServerURL.CARRIER_INFO_URL, name, birth, phone);
+                    getreceiveMsg(result);
+                    
+                } catch (IOException | JSONException e) {
                     e.printStackTrace();
                 }
             }
         }).start();
     }
 
-    private void getreceiveMsg(String receiveMsg) {
-        if (!receiveMsg.isEmpty() && receiveMsg.contains("name")) { // success
-            savetoSharedPrefName(name);
+    private void getreceiveMsg(String receiveMsg) throws JSONException {
+        JSONObject jsonObject = new JSONObject(receiveMsg);
+
+        if (!receiveMsg.isEmpty() && jsonObject.getString("result").equals("success")) { // success
+
+            int id = jsonObject.getInt("id");
+
+            Log.d(TAG, "getreceiveMsg: Insert Success. ID - " + id);
+
+            savetoSharedPrefId(id);
             moveActivity();
+        }
+        else {
+            Log.d(TAG, "getreceiveMsg: Insert Fail");
         }
     }
 
-    private void savetoSharedPrefName(String name) {
+    private void savetoSharedPrefId(int id) {
         SharedPreferences.Editor preferencesEditor = mPreferences.edit();
 
         // data
-        preferencesEditor.putString("name", name);
+        preferencesEditor.putInt("id", id);
 
         preferencesEditor.apply();
     }
