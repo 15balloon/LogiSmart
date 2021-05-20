@@ -4,16 +4,13 @@ import android.animation.ObjectAnimator;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.content.pm.Signature;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Path;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Base64;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -31,12 +28,12 @@ import net.daum.mf.map.api.MapPOIItem;
 import net.daum.mf.map.api.MapPoint;
 import net.daum.mf.map.api.MapView;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-
 public class MainAdminActivity extends AppCompatActivity implements OnMyChangeListener {
 
     private static final String TAG = MainAdminActivity.class.getSimpleName();
+
+    private SharedPreferences mPreferences;
+    private final String SharedPrefFile = "com.logismart.android.SharedPreferences";
 
     ThermoView ThermoView;
     ThermoGaugeView ThermoGaugeView;
@@ -52,7 +49,7 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
     MapPoint mapPoint;
     MapPOIItem marker;
 
-    private String mDeviceName;
+    private String USER_ID;
 
     private int upperThermo;
     private int lowerThermo;
@@ -83,7 +80,8 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
         drawable = (GradientDrawable) ContextCompat.getDrawable(this, R.drawable.light);
 
         Intent intent = getIntent();
-        // something intent
+        USER_ID = intent.getStringExtra("id");
+
         bt_btn.setText("목록");
 
         bt_btn.setOnClickListener(new View.OnClickListener() {
@@ -95,8 +93,6 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
 
         backPressCloseHandler = new BackPressCloseHandler(this);
 
-        mDeviceName = "";
-
         // TODO : Server -> app
         upperThermo = 50;
         lowerThermo = 0;
@@ -107,8 +103,6 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
         ThermoView.setOnMyChangeListener(this);
 
         ThermoGaugeView = findViewById(R.id.thermoGaugeView);
-
-//        getHashKey();
 
         mapView = (MapView) findViewById(R.id.map_view);
         mapPoint = MapPoint.mapPointWithGeoCoord(37.28270048101858, 127.89990486148284);
@@ -126,28 +120,6 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
         marker.setMarkerType(MapPOIItem.MarkerType.BluePin); // 기본으로 제공하는 BluePin 마커 모양.
         marker.setSelectedMarkerType(MapPOIItem.MarkerType.RedPin); // 마커를 클릭했을때, 기본으로 제공하는 RedPin 마커 모양.
         mapView.addPOIItem(marker);
-
-    }
-
-    private void getHashKey(){
-        PackageInfo packageInfo = null;
-        try {
-            packageInfo = getPackageManager().getPackageInfo(getPackageName(), PackageManager.GET_SIGNATURES);
-        } catch (PackageManager.NameNotFoundException e) {
-            e.printStackTrace();
-        }
-        if (packageInfo == null)
-            Log.e("KeyHash", "KeyHash:null");
-
-        for (Signature signature : packageInfo.signatures) {
-            try {
-                MessageDigest md = MessageDigest.getInstance("SHA");
-                md.update(signature.toByteArray());
-                Log.d("KeyHash", Base64.encodeToString(md.digest(), Base64.DEFAULT));
-            } catch (NoSuchAlgorithmException e) {
-                Log.e("KeyHash", "Unable to get MessageDigest. signature=" + signature, e);
-            }
-        }
     }
 
     public class BackPressCloseHandler {
@@ -250,13 +222,11 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
             String[] data_item = uuid[1].split("/");
             switch (uuid[0]) {
                 case "GPS":
-                    // TODO : data -> server
                     mapPoint = MapPoint.mapPointWithGeoCoord(Float.parseFloat(data_item[0]), Float.parseFloat(data_item[1]));
                     mapView.setMapCenterPoint(mapPoint, true);
                     marker.setMapPoint(mapPoint);
                     break;
                 case "Thermo":
-                    // data -> server
                     ThermoView.changeValueEvent(Float.parseFloat(data_item[1]));
                     calculateAngle(Float.parseFloat(data_item[1]));
                     gaugeAnimator();
@@ -284,8 +254,6 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
             animator.setDuration(300);
             animator.start();
             startAngle += sweepAngle;
-        } else {
-            // Create animator without using curved path
         }
     }
 
