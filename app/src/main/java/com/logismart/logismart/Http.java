@@ -71,12 +71,11 @@ public class Http {
             receiveMsg = builder.toString();
             Log.d(TAG, "run: " + receiveMsg);
 
-            connect.disconnect();
-
         } else {
             Log.d(TAG, "run: HTTP_FAIL");
-            connect.disconnect();
         }
+
+        connect.disconnect();
 
         return receiveMsg;
     }

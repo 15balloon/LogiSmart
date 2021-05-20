@@ -19,6 +19,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
@@ -56,6 +57,10 @@ import net.daum.mf.map.api.MapPOIItem;
 import net.daum.mf.map.api.MapPoint;
 import net.daum.mf.map.api.MapView;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -65,6 +70,11 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
 
     private static final String TAG = MainDriverActivity.class.getSimpleName();
 
+    private final String SharedPrefFile = "com.logismart.android.SharedPreferences";
+    private SharedPreferences mPreferences = getSharedPreferences(SharedPrefFile, MODE_PRIVATE);
+
+
+    private final String USER_ID = String.valueOf(mPreferences.getInt("id", 0));
     ThermoView ThermoView;
     ThermoGaugeView ThermoGaugeView;
 
@@ -92,6 +102,8 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
     private Handler mHandler;
     private static final long SCAN_PERIOD = 30000; // 30sec
     private BluetoothLeService mBle;
+
+    private Http http;
 
     private int upperThermo;
     private int lowerThermo;
@@ -133,6 +145,8 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
         mGattCharacteristics = new ArrayList<>();
         mBle = new BluetoothLeService();
         mDeviceAddress = "";
+
+        http = new Http();
 
         Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
         bindService(gattServiceIntent, mServiceConnection_mBle, BIND_AUTO_CREATE);
@@ -597,6 +611,11 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
                 case BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED:
                     Log.d(TAG, "onReceive: Services Discovered");
                     if (mDeviceAddress != null && mBle != null) {
+                        try {
+                            http.Http(ServerURL.CARRIER_CONNECTION_URL, USER_ID, "connect");
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                         displayGattServices(mBle.getSupportedGattServices());
                         startDataRead();
                     }
@@ -604,8 +623,13 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
 
                 case BluetoothLeService.ACTION_DATA_AVAILABLE:
                     Log.d(TAG, "onReceive: Data available");
-                    if (mBle != null)
-                        displayData(intent.getStringExtra(mBle.EXTRA_DATA));
+                    if (mBle != null) {
+                        try {
+                            displayData(intent.getStringExtra(mBle.EXTRA_DATA));
+                        } catch (IOException | JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
                     break;
 
             }
@@ -729,27 +753,66 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
         }).start();
     }
 
-    private void displayData(String data) {
+    public synchronized void ThreadServer(final String[] data) {
+
+        new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                String[] data_item = data[1].split("/");
+                String result = "";
+                try {
+                    switch (data[0]) {
+                        case "GPS":
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mapPoint = MapPoint.mapPointWithGeoCoord(Float.parseFloat(data_item[0]), Float.parseFloat(data_item[1]));
+                                    mapView.setMapCenterPoint(mapPoint, true);
+                                    marker.setMapPoint(mapPoint);
+                                }
+                            });
+
+                            result = http.Http(ServerURL.CARRIER_GPS_URL, USER_ID, data_item[0], data_item[1]);
+                            break;
+
+                        case "Thermo":
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    ThermoView.changeValueEvent(Float.parseFloat(data_item[1]));
+                                    calculateAngle(Float.parseFloat(data_item[1]));
+                                    gaugeAnimator();
+                                }
+                            });
+
+                            result = http.Http(ServerURL.CARRIER_THERMO_URL, USER_ID, data_item[1]);
+                            break;
+                    }
+
+                    if (!result.isEmpty()) {
+                        JSONObject jsonObject = new JSONObject(result);
+                        if (jsonObject.getString("result").equals("success")) {
+                            Log.d(TAG, "displayData: Data send Success");
+                        } else {
+                            Log.d(TAG, "displayData: Data send Fail");
+                        }
+                    }
+
+                } catch (IOException | JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+    }
+
+    private void displayData(String data) throws IOException, JSONException {
         if (data != null) {
             Log.i("Main DATA", data);
             String[] uuid = data.split(" ");
             if (uuid[1].isEmpty())
                 return;
-            String[] data_item = uuid[1].split("/");
-            switch (uuid[0]) {
-                case "GPS":
-                    // TODO : data -> server
-                    mapPoint = MapPoint.mapPointWithGeoCoord(Float.parseFloat(data_item[0]), Float.parseFloat(data_item[1]));
-                    mapView.setMapCenterPoint(mapPoint, true);
-                    marker.setMapPoint(mapPoint);
-                    break;
-                case "Thermo":
-                    // data -> server
-                    ThermoView.changeValueEvent(Float.parseFloat(data_item[1]));
-                    calculateAngle(Float.parseFloat(data_item[1]));
-                    gaugeAnimator();
-                    break;
-            }
+            ThreadServer(uuid);
         }
     }
 
@@ -772,8 +835,6 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
             animator.setDuration(300);
             animator.start();
             startAngle += sweepAngle;
-        } else {
-            // Create animator without using curved path
         }
     }
 

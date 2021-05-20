@@ -1,6 +1,7 @@
 package com.logismart.logismart;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Toast;
 
@@ -20,7 +21,7 @@ public class WaitActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_wait);
 
-        backPressCloseHandler = new WaitActivity.BackPressCloseHandler(this);
+        backPressCloseHandler = new WaitActivity.BackPressCloseHandler(WaitActivity.this);
     }
 
     @Override
@@ -29,11 +30,29 @@ public class WaitActivity extends AppCompatActivity {
 
         // TODO : admin confirm check
 //        if (confirm) {
-//            Intent intent = new Intent(WaitActivity.this, MainDriverActivity.class);
-//            intent.putExtra("ble", );
-//            startActivity(intent);
+//            moveActivity();
 //        }
+    }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        finish();
+    }
+
+    private synchronized void checkConfirm() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                // TODO : app <-> DB
+            }
+        });
+    }
+
+    public void moveActivity() {
+        Intent intent = new Intent(WaitActivity.this, MainDriverActivity.class);
+        intent.putExtra("ble", "LogiSmart");
+        startActivity(intent);
     }
 
     public class BackPressCloseHandler {
