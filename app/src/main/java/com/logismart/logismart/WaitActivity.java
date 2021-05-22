@@ -2,14 +2,39 @@ package com.logismart.logismart;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
+
 public class WaitActivity extends AppCompatActivity {
 
+    private static final String TAG = "WaitActivity";
+
     private WaitActivity.BackPressCloseHandler backPressCloseHandler;
+
+    private final String SharedPrefFile = "com.logismart.android.SharedPreferences";
+    private SharedPreferences mPreferences = getSharedPreferences(SharedPrefFile, MODE_PRIVATE);
+
+
+    private final String USER_ID = String.valueOf(mPreferences.getInt("id", 0));
+
+    private Http http;
+
+    private String ble;
+    private String manager;
+    private String phone;
+    private String from;
+    private String to;
+    private int upper;
+    private int lower;
 
     public void onBackPressed() {
         this.backPressCloseHandler.onBackPressed();
@@ -21,6 +46,8 @@ public class WaitActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_wait);
 
+        http = new Http();
+
         backPressCloseHandler = new WaitActivity.BackPressCloseHandler(WaitActivity.this);
     }
 
@@ -28,10 +55,12 @@ public class WaitActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
 
-        // TODO : admin confirm check
-//        if (confirm) {
-//            moveActivity();
-//        }
+        try {
+            String result = http.Http(ServerURL.CARRIER_ACCEPT_URL, USER_ID);
+            getreceiveMsg(result);
+        } catch (IOException | JSONException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -40,18 +69,37 @@ public class WaitActivity extends AppCompatActivity {
         finish();
     }
 
-    private synchronized void checkConfirm() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                // TODO : app <-> DB
-            }
-        });
+    private void getreceiveMsg(String receiveMsg) throws JSONException {
+        JSONObject jsonObject = new JSONObject(receiveMsg);
+
+        if (!receiveMsg.isEmpty() && jsonObject.getString("result").equals("success")) { // success
+
+            Log.d(TAG, "getreceiveMsg: Insert Success");
+
+            ble = jsonObject.getString("ble");
+            manager = jsonObject.getString("manager");
+            phone = jsonObject.getString("phone");
+            from = jsonObject.getString("from");
+            to = jsonObject.getString("to");
+            upper = jsonObject.getInt("upper");
+            lower = jsonObject.getInt("lower");
+
+            moveActivity();
+        }
+        else {
+            Log.d(TAG, "getreceiveMsg: Insert Fail");
+        }
     }
 
     public void moveActivity() {
         Intent intent = new Intent(WaitActivity.this, MainDriverActivity.class);
-        intent.putExtra("ble", "LogiSmart");
+        intent.putExtra("ble", ble);
+        intent.putExtra("manager", manager);
+        intent.putExtra("manager_phone", phone);
+        intent.putExtra("from", from);
+        intent.putExtra("to", to);
+        intent.putExtra("upper", upper);
+        intent.putExtra("lower", lower);
         startActivity(intent);
     }
 

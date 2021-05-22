@@ -80,6 +80,10 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
 
     MapView mapView;
     TextView bt_name; // Connected ble name
+    TextView startingPoint;
+    TextView destination;
+    TextView manager_name;
+    TextView manager_phone;
 
     String ble_name; // Driver's ble name
 
@@ -129,6 +133,10 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
         setContentView(R.layout.activity_main);
 
         bt_name = findViewById(R.id.BT_name);
+        startingPoint = findViewById(R.id.from);
+        destination = findViewById(R.id.to);
+        manager_name = findViewById(R.id.Manager_name);
+        manager_phone = findViewById(R.id.Manager_phone);
         bt_btn = findViewById(R.id.BT_btn);
         exit_btn = findViewById((R.id.exit_btn));
         ble_light = findViewById(R.id.ble_light);
@@ -136,6 +144,10 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
 
         Intent intent = getIntent();
         ble_name = intent.getStringExtra("ble");
+        startingPoint.setText(intent.getStringExtra("from"));
+        destination.setText(intent.getStringExtra("to"));
+        manager_name.setText(intent.getStringExtra("manager"));
+        manager_phone.setText(intent.getStringExtra("phone"));
         bt_name.setSelected(true);
         bt_name.setText(ble_name);
 
@@ -189,9 +201,8 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
 
         mDeviceName = "";
 
-        // TODO : Server -> app
-        upperThermo = 50;
-        lowerThermo = 0;
+        upperThermo = intent.getIntExtra("upper", 50);
+        lowerThermo = intent.getIntExtra("lower", 0);
         prevThermo = (upperThermo + lowerThermo) / 2;
         startAngle = 270;
 

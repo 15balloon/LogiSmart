@@ -54,7 +54,7 @@
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="3"
+            android:layout_weight="2.5"
             android:gravity="center_horizontal">
 
             <com.logismart.logismart.ThermoView
@@ -67,16 +67,6 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content" />
 
-<!--            <TextView-->
-<!--                android:id="@+id/temperature"-->
-<!--                android:layout_width="wrap_content"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:layout_centerHorizontal="true"-->
-<!--                android:layout_marginTop="130dp"-->
-<!--                android:text="&#45;&#45;ºC"-->
-<!--                android:textColor="@color/btn_pressed"-->
-<!--                android:textSize="60sp" />-->
-
         </RelativeLayout>
 
         <LinearLayout
@@ -84,11 +74,12 @@
             android:layout_height="0dp"
             android:layout_weight="4"
             android:orientation="vertical"
-            android:gravity="center">
+            android:gravity="bottom">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
                 android:orientation="horizontal"
                 android:gravity="center_horizontal">
 
@@ -105,10 +96,18 @@
                     android:text="-"
                     android:textSize="20sp" />
 
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal"
+                android:gravity="center_horizontal">
+
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginLeft="40dp"
                     android:text="도착 : "
                     android:textSize="20sp" />
 
@@ -120,32 +119,57 @@
                     android:textSize="20sp" />
 
             </LinearLayout>
-            
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="15dp"/>
 
             <RelativeLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
-
-<!--                <TextView-->
-<!--                    android:layout_width="match_parent"-->
-<!--                    android:layout_height="match_parent"-->
-<!--                    android:layout_marginLeft="10dp"-->
-<!--                    android:text="현위치"-->
-<!--                    android:textSize="20sp"/>-->
+                android:layout_height="wrap_content">
 
                 <net.daum.mf.map.api.MapView
                     android:id="@+id/map_view"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_marginTop="30dp"
+                    android:layout_height="300dp"
+                    android:layout_marginTop="20dp"
                     android:layout_marginLeft="10dp"
                     android:layout_marginRight="10dp"
                     android:layout_marginBottom="10dp"/>
 
             </RelativeLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_horizontal"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="담당자 : "
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/Manager_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="-"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="32dp"
+                    android:text="연락처 : "
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/Manager_phone"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="-"
+                    android:textSize="16sp" />
+
+            </LinearLayout>
 
         </LinearLayout>
 
