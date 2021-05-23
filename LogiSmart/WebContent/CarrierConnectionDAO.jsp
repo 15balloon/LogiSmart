@@ -15,6 +15,11 @@
 		request.setCharacterEncoding("UTF-8");
 		String id = request.getParameter("strings1");
 		String connectionState = request.getParameter("strings2");
+		int state = 0;
+		
+		if (connectionState.equals("connect")) {
+			state = 1;
+		}
 		
 		JSONObject jObject = new JSONObject();
 		
@@ -27,7 +32,7 @@
 		String insert_state = "UPDATE bluetooth SET b_conn = ? WHERE b_carrier = ?;";
 		
 		pstmt = conn.prepareStatement(insert_state);
-		pstmt.setString(1, connectionState);
+		pstmt.setInt(1, state);
 		pstmt.setInt(2, Integer.parseInt(id));
 		
 		int insert = pstmt.executeUpdate();
