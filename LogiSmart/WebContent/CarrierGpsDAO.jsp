@@ -23,7 +23,7 @@
 		Class.forName(driver);
 		conn = DriverManager.getConnection(jdbcDriver, dbUser, dbPass);
 
-		String insert_gps = "INSERT INTO ?(c_id, lat, lon) VALUES(?, ?, ?)";
+		String insert_gps = "INSERT INTO locate(l_id, l_wido, l_gyeongdo, l_time) VALUES(?, ?, ?, NOW())";
 		
 		pstmt = conn.prepareStatement(insert_gps);
 		pstmt.setInt(1, Integer.parseInt(id));

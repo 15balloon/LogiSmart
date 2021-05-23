@@ -24,7 +24,7 @@
 		
 		System.out.println("id: " + id);
 		
-		String insert_thermo = "INSERT INTO ?(c_id, thermo) VALUES(?, ?)";
+		String insert_thermo = "INSERT INTO temper(t_id, t_data, t_time) VALUES(?, ?, NOW())";
 		
 		pstmt = conn.prepareStatement(insert_thermo);
 		pstmt.setInt(1, Integer.parseInt(id));

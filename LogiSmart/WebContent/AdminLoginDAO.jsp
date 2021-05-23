@@ -38,7 +38,7 @@
 			jObject.put("result", "success");
 		}
 		else {
-			System.out.println("Insert Fail");
+			System.out.println("Search Fail");
 			jObject.put("result", "fail");
 		}
 		System.out.println(jObject.toJSONString());

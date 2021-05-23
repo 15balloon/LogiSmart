@@ -24,11 +24,11 @@
 		
 		System.out.println("id: " + id);
 		
-		String insert_state = "UPDATE manage_bbs SET state = ? WHERE c_id = ?;";
+		String insert_state = "UPDATE bluetooth SET b_conn = ? WHERE b_carrier = ?;";
 		
 		pstmt = conn.prepareStatement(insert_state);
-		pstmt.setInt(2, Integer.parseInt(id));
 		pstmt.setString(1, connectionState);
+		pstmt.setInt(2, Integer.parseInt(id));
 		
 		int insert = pstmt.executeUpdate();
 		
