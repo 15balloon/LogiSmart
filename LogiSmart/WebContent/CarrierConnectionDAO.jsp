@@ -35,14 +35,14 @@
 		pstmt.setInt(1, state);
 		pstmt.setInt(2, Integer.parseInt(id));
 		
-		int insert = pstmt.executeUpdate();
+		int update = pstmt.executeUpdate();
 		
-		if (insert > 0) {
+		if (update > 0) {
 			System.out.println("Update Complete");
 			jObject.put("result", "success");
 		}
 		else {
-			System.out.println("Insert Fail");
+			System.out.println("Update Fail");
 			jObject.put("result", "fail");
 		}
 		System.out.println(jObject.toJSONString());
