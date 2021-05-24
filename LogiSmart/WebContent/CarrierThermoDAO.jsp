@@ -28,7 +28,7 @@
 		
 		pstmt = conn.prepareStatement(insert_thermo);
 		pstmt.setInt(1, Integer.parseInt(id));
-		pstmt.setString(2, thermo);
+		pstmt.setInt(2, Integer.parseInt(thermo));
 		
 		int insert = pstmt.executeUpdate();
 		
