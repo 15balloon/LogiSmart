@@ -17,6 +17,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -40,6 +41,8 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
 
     MapView mapView;
     TextView bt_name; // ble name
+
+    LinearLayout info;
 
     Button bt_btn; // BLE btn
     Button exit_btn; // BLE exit btn
@@ -73,6 +76,8 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
 
         setContentView(R.layout.activity_main);
 
+        info = findViewById(R.id.Manager_info);
+        info.setVisibility(View.INVISIBLE);
         bt_name = findViewById(R.id.BT_name);
         bt_btn = findViewById(R.id.BT_btn);
         exit_btn = findViewById((R.id.exit_btn));
