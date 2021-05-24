@@ -133,12 +133,25 @@ public class AuthActivity extends Activity {
         pd.dismiss();
     }
 
+    public void deleteAuth() {
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        currentUser.delete()
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        if (task.isSuccessful()) {
+                            Log.d(TAG, "User account deleted.");
+                        }
+                    }
+                });
+    }
+
     @Override
     public void onStart() {
         super.onStart();
         // Check if user is signed in (non-null) and update UI accordingly.
         FirebaseUser currentUser = mAuth.getCurrentUser();
-        Log.d(TAG, "onStart called");
+        Log.d(TAG, "onStart called" + currentUser);
         if (currentUser != null) {
             Log.d(TAG, "onStart: mAuth exist");
             moveActivity();

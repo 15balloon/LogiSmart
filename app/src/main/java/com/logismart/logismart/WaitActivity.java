@@ -21,10 +21,10 @@ public class WaitActivity extends AppCompatActivity {
     private WaitActivity.BackPressCloseHandler backPressCloseHandler;
 
     private final String SharedPrefFile = "com.logismart.android.SharedPreferences";
-    private SharedPreferences mPreferences = getSharedPreferences(SharedPrefFile, MODE_PRIVATE);
+    private SharedPreferences mPreferences;
 
 
-    private final String USER_ID = String.valueOf(mPreferences.getInt("id", 0));
+    private String USER_ID;
 
     private Http http;
 
@@ -46,27 +46,39 @@ public class WaitActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_wait);
 
+        mPreferences = getSharedPreferences(SharedPrefFile, MODE_PRIVATE);
+        USER_ID = String.valueOf(mPreferences.getInt("id", 0));
+
         http = new Http();
 
         backPressCloseHandler = new WaitActivity.BackPressCloseHandler(WaitActivity.this);
+
+        checkConfirm();
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-
-        try {
-            String result = http.Http(ServerURL.CARRIER_ACCEPT_URL, USER_ID);
-            getreceiveMsg(result);
-        } catch (IOException | JSONException e) {
-            e.printStackTrace();
-        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         finish();
+    }
+
+    private synchronized void checkConfirm() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    String result = http.Http(ServerURL.CARRIER_ACCEPT_URL, USER_ID);
+                    getreceiveMsg(result);
+                } catch (IOException | JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
     }
 
     private void getreceiveMsg(String receiveMsg) throws JSONException {

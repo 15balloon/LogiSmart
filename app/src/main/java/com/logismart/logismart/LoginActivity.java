@@ -23,7 +23,7 @@ public class LoginActivity extends AppCompatActivity {
     private static final String TAG = "LoginActivity";
 
     private final String SharedPrefFile = "com.logismart.android.SharedPreferences";
-    private SharedPreferences mPreferences = getSharedPreferences(SharedPrefFile, MODE_PRIVATE);
+    private SharedPreferences mPreferences;
 
     private Button backBtn;
     private EditText idText;
@@ -42,12 +42,14 @@ public class LoginActivity extends AppCompatActivity {
 
         mPreferences = getSharedPreferences(SharedPrefFile, MODE_PRIVATE);
 
+
         backBtn = findViewById(R.id.login_back_btn);
         idText = (EditText) findViewById(R.id.id_input);
         pwText = (EditText) findViewById(R.id.pw_input);
         loginBtn = findViewById(R.id.login_btn);
 
         pd = ProgressDialog.show(LoginActivity.this, "", "로딩중");
+        pd.dismiss();
 
         http = new Http();
 
@@ -70,19 +72,7 @@ public class LoginActivity extends AppCompatActivity {
                     pd.dismiss();
                     return;
                 }
-                try {
-                    String result = http.Http(ServerURL.ADMIN_LOGIN_URL, id, pw);
-                    JSONObject jsonObject = new JSONObject(result);
-                    if (jsonObject.getString("result").equals("success")) {
-                        savetoSharedPrefId(id);
-                        moveActivity();
-                    }
-                    else {
-                        Toast.makeText(LoginActivity.this, "아이디, 패스워드가 틀립니다.", Toast.LENGTH_SHORT).show();
-                    }
-                } catch (IOException | JSONException e) {
-                    e.printStackTrace();
-                }
+                httpSQL(id, pw);
             }
         });
     }
@@ -100,6 +90,35 @@ public class LoginActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         finish();
+    }
+
+    private synchronized void httpSQL(String id, String pw) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "onClick: " + id + pw);
+                try {
+                    String result = http.Http(ServerURL.ADMIN_LOGIN_URL, id, pw);
+                    JSONObject jsonObject = null;
+                    jsonObject = new JSONObject(result);
+                    if (jsonObject.getString("result").equals("success")) {
+                        savetoSharedPrefId(id);
+                        moveActivity();
+                    }
+                    else {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                pd.dismiss();
+                                Toast.makeText(LoginActivity.this, "아이디, 패스워드가 틀립니다.", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+                } catch (IOException | JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
     }
 
     private void savetoSharedPrefId(String id) {

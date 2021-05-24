@@ -71,10 +71,10 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
     private static final String TAG = MainDriverActivity.class.getSimpleName();
 
     private final String SharedPrefFile = "com.logismart.android.SharedPreferences";
-    private SharedPreferences mPreferences = getSharedPreferences(SharedPrefFile, MODE_PRIVATE);
+    private SharedPreferences mPreferences;
 
 
-    private final String USER_ID = String.valueOf(mPreferences.getInt("id", 0));
+    private String USER_ID;
     ThermoView ThermoView;
     ThermoGaugeView ThermoGaugeView;
 
@@ -132,6 +132,9 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
 
         setContentView(R.layout.activity_main);
 
+        mPreferences = getSharedPreferences(SharedPrefFile, MODE_PRIVATE);
+        USER_ID = String.valueOf(mPreferences.getInt("id", 0));
+
         bt_name = findViewById(R.id.BT_name);
         startingPoint = findViewById(R.id.from);
         destination = findViewById(R.id.to);
@@ -147,7 +150,7 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
         startingPoint.setText(intent.getStringExtra("from"));
         destination.setText(intent.getStringExtra("to"));
         manager_name.setText(intent.getStringExtra("manager"));
-        manager_phone.setText(intent.getStringExtra("phone"));
+        manager_phone.setText(intent.getStringExtra("manager_phone"));
         bt_name.setSelected(true);
         bt_name.setText(ble_name);
 
@@ -601,6 +604,19 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
         }
     };
 
+    private synchronized void updateConnectionState(String state) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    http.Http(ServerURL.CARRIER_CONNECTION_URL, USER_ID, state);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+    }
+
     private final BroadcastReceiver mGattUpdateReceiver_mBle = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -610,23 +626,18 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
                     Log.d(TAG, "onReceive: CONNECTED");
                     bt_name.setSelected(true);
                     bt_name.setText(mDeviceName);
-                    invalidateOptionsMenu();
-
+//                    invalidateOptionsMenu();
+                    updateConnectionState("connect");
                     break;
 
                 case BluetoothLeService.ACTION_GATT_DISCONNECTED:
                     Log.d(TAG, "onReceive: DISCONNECTED");
-                    invalidateOptionsMenu();
+//                    invalidateOptionsMenu();
                     break;
 
                 case BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED:
                     Log.d(TAG, "onReceive: Services Discovered");
                     if (mDeviceAddress != null && mBle != null) {
-                        try {
-                            http.Http(ServerURL.CARRIER_CONNECTION_URL, USER_ID, "connect");
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
                         displayGattServices(mBle.getSupportedGattServices());
                         startDataRead();
                     }
@@ -635,11 +646,7 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
                 case BluetoothLeService.ACTION_DATA_AVAILABLE:
                     Log.d(TAG, "onReceive: Data available");
                     if (mBle != null) {
-                        try {
-                            displayData(intent.getStringExtra(mBle.EXTRA_DATA));
-                        } catch (IOException | JSONException e) {
-                            e.printStackTrace();
-                        }
+                        displayData(intent.getStringExtra(mBle.EXTRA_DATA));
                     }
                     break;
 
@@ -797,11 +804,11 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
                                 }
                             });
 
-                            result = http.Http(ServerURL.CARRIER_THERMO_URL, USER_ID, data_item[1]);
+                            result = http.Http(ServerURL.CARRIER_THERMO_URL, USER_ID, data_item[1].substring(0, data_item[1].length() - 3));
                             break;
                     }
 
-                    if (!result.isEmpty()) {
+                    if (!result.trim().isEmpty()) {
                         JSONObject jsonObject = new JSONObject(result);
                         if (jsonObject.getString("result").equals("success")) {
                             Log.d(TAG, "displayData: Data send Success");
@@ -817,7 +824,7 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
         }).start();
     }
 
-    private void displayData(String data) throws IOException, JSONException {
+    private void displayData(String data) {
         if (data != null) {
             Log.i("Main DATA", data);
             String[] uuid = data.split(" ");
