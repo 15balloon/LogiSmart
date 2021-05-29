@@ -69,6 +69,7 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
     MapPOIItem marker;
 
     private String USER_ID;
+    private String USER_NAME;
     private LeDeviceListAdapter mLeDeviceListAdapter;
 
     private int upperThermo;
@@ -110,6 +111,7 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
 
         Intent intent = getIntent();
         USER_ID = intent.getStringExtra("id");
+        USER_NAME = intent.getStringExtra("name");
 
         bt_btn.setText("목록");
 
@@ -201,7 +203,7 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
         @Override
         public void run() {
             try {
-                String result = http.Http(ServerURL.ADMIN_BLE_URL, USER_ID);
+                String result = http.Http(ServerURL.ADMIN_BLE_URL, USER_NAME);
                 JSONObject jsonObject = null;
                 jsonObject = new JSONObject(result);
                 if (jsonObject.getString("result").equals("success")) {

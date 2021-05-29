@@ -80,7 +80,7 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        if (!mPreferences.getString("admin_id", "null").equals("null")) {
+        if (!mPreferences.getString("admin_name", "null").equals("null")) {
             Log.d(TAG, "onStart: Admin Auto-Login");
             moveActivity();
         }
@@ -102,7 +102,7 @@ public class LoginActivity extends AppCompatActivity {
                     JSONObject jsonObject = null;
                     jsonObject = new JSONObject(result);
                     if (jsonObject.getString("result").equals("success")) {
-                        savetoSharedPrefId(id);
+                        savetoSharedPrefName(jsonObject.getString("name"), id);
                         moveActivity();
                     }
                     else {
@@ -121,10 +121,11 @@ public class LoginActivity extends AppCompatActivity {
         }).start();
     }
 
-    private void savetoSharedPrefId(String id) {
+    private void savetoSharedPrefName(String name, String id) {
         SharedPreferences.Editor preferencesEditor = mPreferences.edit();
 
         // data
+        preferencesEditor.putString("admin_name", name);
         preferencesEditor.putString("admin_id", id);
 
         preferencesEditor.apply();
@@ -132,6 +133,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private void moveActivity() {
         Intent intent = new Intent(LoginActivity.this, MainAdminActivity.class);
+        intent.putExtra("name", mPreferences.getString("admin_name", "null"));
         intent.putExtra("id", mPreferences.getString("admin_id", "null"));
         startActivity(intent);
     }
