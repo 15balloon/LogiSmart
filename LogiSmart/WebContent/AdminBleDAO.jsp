@@ -60,6 +60,7 @@
 			jObject.put("from", result1.getInt("bbs_start"));
 			jObject.put("to", result1.getInt("bbs_arrival"));
 			jObject.put("connect", result2.getInt("b_conn"));
+			jObject.put("driverId", result3.getInt("c_id"));
 			jObject.put("driverName", result3.getString("c_name"));
 			jObject.put("driverPhone", result3.getString("c_phone"));
 			jObject.put("shipName", result1.getString("bbs_name"));
