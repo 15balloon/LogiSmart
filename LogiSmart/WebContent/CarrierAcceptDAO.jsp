@@ -48,12 +48,12 @@
 		result2 = pstmt2.executeQuery();
 		
 		if (result2.next()) {
-			String managerId = result2.getString("bbs_manager"); // id
+			String managerName = result2.getString("bbs_manager"); // name
 
-			String search_manager = "SELECT * FROM manager WHERE m_ID = ?;";
+			String search_manager = "SELECT * FROM manager WHERE m_Name = ?;";
 			
 			pstmt3 = conn.prepareStatement(search_manager);
-			pstmt3.setString(1, managerId);
+			pstmt3.setString(1, managerName);
 			
 			result3 = pstmt3.executeQuery();
 			

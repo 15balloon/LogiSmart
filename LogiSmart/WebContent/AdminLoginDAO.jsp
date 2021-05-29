@@ -36,6 +36,7 @@
 		if (result.next()) {
 			System.out.println("Search Complete");
 			jObject.put("result", "success");
+			jObject.put("name", result.getString("m_Name"));
 		}
 		else {
 			System.out.println("Search Fail");
