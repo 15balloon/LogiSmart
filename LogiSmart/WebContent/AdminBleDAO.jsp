@@ -50,22 +50,22 @@
 			
 			String search_carrier = "SELECT * FROM carriers WHERE c_id = ?;";
 			pstmt3 = conn.prepareStatement(search_carrier);
-			pstmt3.setInt(1, result2.getInt("bbs_carrierID"));
+			pstmt3.setInt(1, result1.getInt("bbs_carrierID"));
 			
 			result3 = pstmt3.executeQuery();
 			result3.next();
 			
 			JSONObject jObject = new JSONObject();
 			jObject.put("name", result2.getString("b_name"));
-			jObject.put("from", result1.getInt("bbs_start"));
-			jObject.put("to", result1.getInt("bbs_arrival"));
+			jObject.put("from", result1.getString("bbs_start"));
+			jObject.put("to", result1.getString("bbs_arrival"));
 			jObject.put("connect", result2.getInt("b_conn"));
 			jObject.put("driverId", result3.getInt("c_id"));
 			jObject.put("driverName", result3.getString("c_name"));
 			jObject.put("driverPhone", result3.getString("c_phone"));
 			jObject.put("shipName", result1.getString("bbs_name"));
-			jObject.put("upper", result1.getString("bbs_upper"));
-			jObject.put("lower", result1.getString("bbs_lower"));
+			jObject.put("upper", result1.getInt("bbs_upper"));
+			jObject.put("lower", result1.getInt("bbs_lower"));
 			jArray.add(jObject);
 			
 			pstmt2.clearParameters();
