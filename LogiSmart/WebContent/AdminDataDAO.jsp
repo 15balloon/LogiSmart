@@ -37,20 +37,20 @@
 		pstmt2 = conn.prepareStatement(get_thermo);
 		pstmt2.setInt(1, Integer.parseInt(id));
 		
-		result2 = pstmt1.executeQuery();
+		result2 = pstmt2.executeQuery();
 		
 		String get_conn = "SELECT * FROM bluetooth WHERE b_carrier = ?";
 		
 		pstmt3 = conn.prepareStatement(get_conn);
 		pstmt3.setInt(1, Integer.parseInt(id));
 		
-		result3 = pstmt1.executeQuery();
+		result3 = pstmt3.executeQuery();
 		
 		if (result1.next() && result2.next() && result3.next()) {
 			System.out.println("Search Complete");
 			jObject.put("result", "success");
 		 	jObject.put("lat", result1.getString("l_wido"));
-			jObject.put("lon", result1.getString("l_qyeongdo"));
+			jObject.put("lon", result1.getString("l_gyeongdo").trim());
 			jObject.put("thermo", result2.getInt("t_data"));
 			jObject.put("conn", result3.getInt("b_conn"));
 		}
