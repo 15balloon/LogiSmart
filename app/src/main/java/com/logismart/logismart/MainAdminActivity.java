@@ -11,6 +11,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -37,6 +38,8 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MainAdminActivity extends AppCompatActivity implements OnMyChangeListener {
 
@@ -55,8 +58,8 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
     TextView delivery;
     TextView startingPoint;
     TextView destination;
-    TextView driver_name;
-    TextView driver_phone;
+    TextView driverName;
+    TextView driverPhone;
 
     LinearLayout info;
 
@@ -70,6 +73,7 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
 
     private String USER_ID;
     private String USER_NAME;
+    private int DRIVER_ID;
     private LeDeviceListAdapter mLeDeviceListAdapter;
 
     private int upperThermo;
@@ -80,6 +84,7 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
     private float sweepAngle;
 
     private boolean mConnected = false;
+    private Handler mHandler;
 
     private BackPressCloseHandler backPressCloseHandler;
 
@@ -95,15 +100,15 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
         setContentView(R.layout.activity_main);
 
         http = new Http();
+        mHandler = new Handler();
 
         info = findViewById(R.id.Manager_info);
-        info.setVisibility(View.INVISIBLE);
         bt_name = findViewById(R.id.BT_name);
         delivery = findViewById(R.id.delivery);
         startingPoint = findViewById(R.id.from);
         destination = findViewById(R.id.to);
-        driver_name = findViewById(R.id.Manager_name);
-        driver_phone = findViewById(R.id.Manager_phone);
+        driverName = findViewById(R.id.Manager_name);
+        driverPhone = findViewById(R.id.Manager_phone);
         bt_btn = findViewById(R.id.BT_btn);
         exit_btn = findViewById((R.id.exit_btn));
         ble_light = findViewById(R.id.ble_light);
@@ -184,17 +189,6 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
         super.onDestroy();
     }
 
-    public void startDataRead() {
-        if (mConnected) {
-            try {
-                Log.d(TAG, "startDataRead: mConnected True");
-
-            } catch (Exception e) {
-                Log.d("Exception", e.getMessage());
-            }
-        }
-    }
-
     class HttpListThread implements Runnable {
         private JSONArray jArray;
         private boolean check = false;
@@ -204,18 +198,16 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
         public void run() {
             try {
                 String result = http.Http(ServerURL.ADMIN_BLE_URL, USER_NAME);
-                JSONObject jsonObject = null;
-                jsonObject = new JSONObject(result);
+                JSONObject jsonObject = new JSONObject(result);
                 if (jsonObject.getString("result").equals("success")) {
                     Log.d(TAG, "run: Http Success");
                     jArray = jsonObject.getJSONArray("data");
                     check = true;
-                    done = true;
                 }
                 else {
                     Log.d(TAG, "run: Http False");
-                    done = true;
                 }
+                done = true;
             } catch (IOException | JSONException e) {
                 e.printStackTrace();
             }
@@ -225,14 +217,17 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
             if (!done) {
                 synchronized (this) {
                     try {
+                        Log.d(TAG, "getData: wait!");
                         this.wait();
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
             }
-            if (check)
+            if (check) {
+                Log.d(TAG, "getData: return data");
                 return jArray;
+            }
 
             return null;
         }
@@ -242,8 +237,9 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
         bt_name.setText(device.getBleName());
         startingPoint.setText(device.getBleFrom());
         destination.setText(device.getBleTo());
-        driver_name.setText(device.getBleDriver());
-        driver_phone.setText(device.getBleDriverPhone());
+        DRIVER_ID = device.getBleDriverId();
+        driverName.setText(device.getBleDriver());
+        driverPhone.setText(device.getBleDriverPhone());
         delivery.setText(device.getShipName());
         upperThermo = device.getUpper();
         lowerThermo = device.getLower();
@@ -274,24 +270,20 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
         HttpListThread task = new HttpListThread();
         new Thread(task).start();
         mLeDeviceListAdapter = new LeDeviceListAdapter();
+        getLeDevice(task);
         device_list.setAdapter(mLeDeviceListAdapter);
 
         device_list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                try {
-                    mLeDeviceListAdapter.addDevice(task.getData());
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
 
                 final ListViewItem device = mLeDeviceListAdapter.getDevice(position);
                 Log.d(TAG, "onItemClick: " + device);
 
                 if (device == null) return;
                 setMethod(device);
-
+                dataRead();
                 dialog.dismiss();
             }
         });
@@ -308,6 +300,20 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
         dialog.show();
     }
 
+    private void getLeDevice(HttpListThread task) {
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    mLeDeviceListAdapter.addDevice(task.getData());
+                    mLeDeviceListAdapter.notifyDataSetChanged();
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }, 0);
+    }
+
     private class LeDeviceListAdapter extends BaseAdapter {
         private ArrayList<ListViewItem> mLeDevices;
         private LayoutInflater mInflator;
@@ -319,13 +325,14 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
         }
 
         public void addDevice(JSONArray jArray) throws JSONException {
-            if (!jArray.isNull(1)) {
+            if (!jArray.isNull(0)) {
                 for (int i = 0; i < jArray.length(); i++) {
                     JSONObject jsonObject = jArray.getJSONObject(i);
                     String bleName = jsonObject.getString("name");
                     String bleFrom = jsonObject.getString("from");
                     String bleTo = jsonObject.getString("to");
                     int bleConnection = jsonObject.getInt("connect");
+                    int bleDriverId = jsonObject.getInt("driverId");
                     String bleDriver = jsonObject.getString("driverName");
                     String bleDriverPhone = jsonObject.getString("driverPhone");
                     String shipName = jsonObject.getString("shipName");
@@ -337,6 +344,7 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
                     item.setBleFrom(bleFrom);
                     item.setBleTo(bleTo);
                     item.setBleConnection(bleConnection);
+                    item.setBleDriverId(bleDriverId);
                     item.setBleDriver(bleDriver);
                     item.setBleDriverPhone(bleDriverPhone);
                     item.setShipName(shipName);
@@ -393,24 +401,113 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
         }
     }
 
-    private void displayData(String data) {
+    class HttpDataThread implements Runnable {
+        JSONObject jsonObject = null;
+        private boolean check = false;
+        private boolean done = false;
+
+        @Override
+        public void run() {
+            done = false;
+            check = false;
+            try {
+                String result = http.Http(ServerURL.ADMIN_DATA_URL, Integer.toString(DRIVER_ID));
+
+                if (!result.isEmpty()) {
+                    jsonObject = new JSONObject(result);
+                    if (jsonObject.getString("result").equals("success")) {
+                        Log.d(TAG, "run: Http Success");
+                        check = true;
+                    }
+                    else {
+                        Log.d(TAG, "run: Http False");
+                    }
+                }
+                done = true;
+            } catch (IOException | JSONException e) {
+                e.printStackTrace();
+            }
+        }
+
+        public JSONObject getData() {
+            if (!done) {
+                synchronized (this) {
+                    try {
+                        this.wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            if (check)
+                return jsonObject;
+
+            return null;
+        }
+    }
+
+    public void dataRead() {
+        Log.d(TAG, "dataRead: mConnected" + mConnected);
+        Timer mTimer = null;
+        TimerTask t = null;
+        HttpDataThread task = new HttpDataThread();
+        new Thread(task).start();
+        if (mConnected) {
+            try {
+                Log.d(TAG, "startDataRead: mConnected True");
+
+                t = new TimerTask()
+                {
+                    public void run()
+                    {
+                        task.run();
+                        JSONObject jsonObject = task.getData();
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    displayData(jsonObject);
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
+                    }
+                };
+                mTimer = new Timer();
+                mTimer.schedule(t, 0, 1000);
+
+            } catch (Exception e) {
+                Log.d("Exception", e.getMessage());
+            }
+        }
+        else {
+            mTimer.cancel();
+            t.cancel();
+        }
+    }
+
+    private void displayData(JSONObject data) throws JSONException {
         if (data != null) {
-            Log.i("Main DATA", data);
-            String[] uuid = data.split(" ");
-            if (uuid[1].isEmpty())
-                return;
-            String[] data_item = uuid[1].split("/");
-            switch (uuid[0]) {
-                case "GPS":
-                    mapPoint = MapPoint.mapPointWithGeoCoord(Float.parseFloat(data_item[0]), Float.parseFloat(data_item[1]));
-                    mapView.setMapCenterPoint(mapPoint, true);
-                    marker.setMapPoint(mapPoint);
-                    break;
-                case "Thermo":
-                    ThermoView.changeValueEvent(Float.parseFloat(data_item[1]));
-                    calculateAngle(Float.parseFloat(data_item[1]));
-                    gaugeAnimator();
-                    break;
+            Log.d(TAG, "displayData: " + data);
+
+            String LAT = data.getString("lat");
+            String LON = data.getString("lon");
+            float thermo = (float) data.getInt("thermo");
+            int connState = data.getInt("conn");
+
+            mapPoint = MapPoint.mapPointWithGeoCoord(Float.parseFloat(LAT), Float.parseFloat(LON));
+            mapView.setMapCenterPoint(mapPoint, true);
+            marker.setMapPoint(mapPoint);
+
+            ThermoView.changeValueEvent(thermo);
+            calculateAngle(thermo);
+            gaugeAnimator();
+
+            if (connState != 1) {
+                drawable.setColor(Color.RED);
+                ble_light.setImageDrawable(drawable);
+                mConnected = false;
             }
         }
     }

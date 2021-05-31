@@ -6,6 +6,7 @@ public class ListViewItem {
     private String bleTo;
     private int bleConnection;
     private String bleDriver;
+    private int bleDriverId;
     private String bleDriverPhone;
     private String shipName;
     private int upper;
@@ -29,6 +30,10 @@ public class ListViewItem {
 
     public void setBleDriver(String bleDriver) {
         this.bleDriver = bleDriver;
+    }
+
+    public void setBleDriverId(int bleDriverId) {
+        this.bleDriverId = bleDriverId;
     }
 
     public void setBleDriverPhone(String bleDriverPhone) {
@@ -67,6 +72,10 @@ public class ListViewItem {
 
     public String getBleDriver() {
         return bleDriver;
+    }
+
+    public int getBleDriverId() {
+        return bleDriverId;
     }
 
     public String getBleDriverPhone() {
