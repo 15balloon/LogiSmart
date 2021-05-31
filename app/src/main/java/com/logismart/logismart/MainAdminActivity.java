@@ -233,6 +233,19 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
         }
     }
 
+    private void setmConnected(int connState) {
+        if (connState == 1) {
+            drawable.setColor(Color.GREEN);
+            ble_light.setImageDrawable(drawable);
+            mConnected = true;
+        }
+        else {
+            drawable.setColor(Color.RED);
+            ble_light.setImageDrawable(drawable);
+            mConnected = false;
+        }
+    }
+
     private void setMethod(ListViewItem device) {
         bt_name.setText(device.getBleName());
         startingPoint.setText(device.getBleFrom());
@@ -244,17 +257,9 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
         upperThermo = device.getUpper();
         lowerThermo = device.getLower();
         prevThermo = (upperThermo + lowerThermo) / 2;
+        startAngle = 270;
 
-        if (device.getBleConnection() == 1) {
-            drawable.setColor(Color.GREEN);
-            ble_light.setImageDrawable(drawable);
-            mConnected = true;
-        }
-        else {
-            drawable.setColor(Color.RED);
-            ble_light.setImageDrawable(drawable);
-            mConnected = false;
-        }
+        setmConnected(device.getBleConnection());
     }
 
     private void ble_list() {
@@ -284,6 +289,7 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
                 if (device == null) return;
                 setMethod(device);
                 dataRead();
+
                 dialog.dismiss();
             }
         });
@@ -447,7 +453,7 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
     }
 
     public void dataRead() {
-        Log.d(TAG, "dataRead: mConnected" + mConnected);
+        Log.d(TAG, "dataRead: mConnected - " + mConnected);
         Timer mTimer = null;
         TimerTask t = null;
         HttpDataThread task = new HttpDataThread();
@@ -477,39 +483,47 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
                 mTimer = new Timer();
                 mTimer.schedule(t, 0, 1000);
 
+                if (!mConnected) {
+                    mTimer.cancel();
+                    t.cancel();
+
+                    setmConnected(0);
+                }
+
             } catch (Exception e) {
                 Log.d("Exception", e.getMessage());
             }
         }
-        else {
-            mTimer.cancel();
-            t.cancel();
-        }
     }
 
     private void displayData(JSONObject data) throws JSONException {
+        String LAT = "37.28270048101858";
+        String LON = "127.89990486148284";
+        float thermo = prevThermo;
+        int connState = 0;
+
         if (data != null) {
             Log.d(TAG, "displayData: " + data);
 
-            String LAT = data.getString("lat");
-            String LON = data.getString("lon");
-            float thermo = (float) data.getInt("thermo");
-            int connState = data.getInt("conn");
+            LAT = data.getString("lat");
+            LON = data.getString("lon");
+            thermo = (float) data.getInt("thermo");
+            connState = data.getInt("conn");
 
-            mapPoint = MapPoint.mapPointWithGeoCoord(Float.parseFloat(LAT), Float.parseFloat(LON));
-            mapView.setMapCenterPoint(mapPoint, true);
-            marker.setMapPoint(mapPoint);
+            setmConnected(connState);
 
             ThermoView.changeValueEvent(thermo);
-            calculateAngle(thermo);
-            gaugeAnimator();
-
-            if (connState != 1) {
-                drawable.setColor(Color.RED);
-                ble_light.setImageDrawable(drawable);
-                mConnected = false;
-            }
         }
+        else {
+            ThermoView.changeValueEvent(0);
+        }
+        mapPoint = MapPoint.mapPointWithGeoCoord(Float.parseFloat(LAT), Float.parseFloat(LON));
+        mapView.setMapCenterPoint(mapPoint, true);
+        marker.setMapPoint(mapPoint);
+
+        calculateAngle(thermo);
+        gaugeAnimator();
+
     }
 
     @Override
