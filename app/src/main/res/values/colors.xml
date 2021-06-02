@@ -14,6 +14,7 @@
     <color name="red">#FFFF0000</color>
     <color name="green">#FF00FF00</color>
     <color name="gray">#E3E3E3</color>
+    <color name="noti">#fff1c910</color>
     <drawable name="gray">#FFE3E3E3</drawable>
     <drawable name="white">#FFFFFFFF</drawable>
 </resources>
