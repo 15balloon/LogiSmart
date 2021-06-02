@@ -3,7 +3,6 @@ package com.logismart.logismart;
 import android.animation.ObjectAnimator;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Path;
@@ -27,6 +26,8 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+
+import com.google.firebase.messaging.FirebaseMessaging;
 
 import net.daum.mf.map.api.MapPOIItem;
 import net.daum.mf.map.api.MapPoint;
@@ -114,9 +115,9 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
         ble_light = findViewById(R.id.ble_light);
         drawable = (GradientDrawable) ContextCompat.getDrawable(this, R.drawable.light);
 
-        Intent intent = getIntent();
-        USER_ID = intent.getStringExtra("id");
-        USER_NAME = intent.getStringExtra("name");
+        mPreferences = getSharedPreferences(SharedPrefFile, MODE_PRIVATE);
+        USER_ID = mPreferences.getString("admin_id", "null");
+        USER_NAME = mPreferences.getString("admin_name", "null");
 
         bt_btn.setText("목록");
 
@@ -155,6 +156,9 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
         marker.setMarkerType(MapPOIItem.MarkerType.BluePin); // 기본으로 제공하는 BluePin 마커 모양.
         marker.setSelectedMarkerType(MapPOIItem.MarkerType.RedPin); // 마커를 클릭했을때, 기본으로 제공하는 RedPin 마커 모양.
         mapView.addPOIItem(marker);
+
+        FirebaseMessaging.getInstance().getToken();
+
     }
 
     public class BackPressCloseHandler {

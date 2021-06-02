@@ -82,6 +82,7 @@ public class LoginActivity extends AppCompatActivity {
         super.onStart();
         if (!mPreferences.getString("admin_name", "null").equals("null")) {
             Log.d(TAG, "onStart: Admin Auto-Login");
+            Toast.makeText(LoginActivity.this, "자동 로그인 성공", Toast.LENGTH_SHORT).show();
             moveActivity();
         }
     }
@@ -133,8 +134,6 @@ public class LoginActivity extends AppCompatActivity {
 
     private void moveActivity() {
         Intent intent = new Intent(LoginActivity.this, MainAdminActivity.class);
-        intent.putExtra("name", mPreferences.getString("admin_name", "null"));
-        intent.putExtra("id", mPreferences.getString("admin_id", "null"));
         startActivity(intent);
     }
 }
