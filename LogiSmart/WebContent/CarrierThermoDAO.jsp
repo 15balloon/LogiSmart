@@ -23,7 +23,7 @@
 	try {
 		request.setCharacterEncoding("UTF-8");
 		String id = request.getParameter("strings1");
-		String thermo = request.getParameter("strings2");
+		int thermo = Integer.parseInt(request.getParameter("strings2"));
 		
 		JSONObject jObject = new JSONObject();
 		
@@ -37,16 +37,19 @@
 		
 		pstmt = conn.prepareStatement(insert_thermo);
 		pstmt.setInt(1, Integer.parseInt(id));
-		pstmt.setInt(2, Integer.parseInt(thermo));
+		pstmt.setInt(2, thermo);
 		
 		int insert = pstmt.executeUpdate();
 		
-		String get_thermo = "SELECT * FROM temper WHERE t_id = ? ORDER BY t_time DESC LIMIT 31;";
+		String get_thermo = "SELECT * FROM temper WHERE t_id = ? ORDER BY t_time DESC LIMIT 1;";
 		
 		pstmt1 = conn.prepareStatement(get_thermo);
 		pstmt1.setInt(1, Integer.parseInt(id));
 		
 		result1 = pstmt1.executeQuery();
+		
+		result1.next();
+		Date time = result1.getDate("t_time");
 		
 		String search_thermo = "SELECT * FROM managebbs WHERE bbs_carrierID = ?;";
 		
@@ -86,19 +89,25 @@
 			
 			if (!m_Token.isEmpty()) {
 				CheckNoti noti = new CheckNoti();
-				int check = noti.checkSafe(result1, result2);
+				int check = noti.checkSafe(thermo, result2);
 				
 				System.out.println("check : " + check);
 				
-				SendNoti send = new SendNoti();
-				
-				switch (check) {
-				case 1:
-					send.sendMsg("경고", b_name + " 물품의 온도가 한계 온도에 근접했습니다.", m_Token);
-					break;
-				case 2:
-					send.sendMsg("위험", b_name + " 물품의 온도가 한계 온도를 넘었습니다.", m_Token);
-					break;
+				if (check != 0) {
+					
+					if (ListNoti.searchList(b_name, time)) {
+						
+						SendNoti send = new SendNoti();
+						
+						switch (check) {
+						case 1:
+							send.sendMsg("경고", b_name + " 물품의 온도가 한계 온도에 근접했습니다.", m_Token);
+							break;
+						case 2:
+							send.sendMsg("위험", b_name + " 물품의 온도가 한계 온도를 넘었습니다.", m_Token);
+							break;
+						}
+					}
 				}
 			}
 		}
