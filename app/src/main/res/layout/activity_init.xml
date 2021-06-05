@@ -11,34 +11,31 @@
         android:orientation="vertical"
         android:gravity="center_horizontal">
 
-        <!-- font -->
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1">
+            android:layout_weight="5"
+            android:orientation="vertical"
+            android:gravity="bottom">
 
-            <TextView
+            <ImageView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:gravity="bottom|center_horizontal"
-                android:text="LogiSmart"
-                android:textSize="50sp"
-                android:textColor="@color/black" />
+                android:src="@drawable/logismart" />
 
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_weight="2"
             android:orientation="vertical"
             android:gravity="bottom">
 
             <Button
                 android:id="@+id/admin"
-                android:layout_width="200dp"
-                android:layout_height="wrap_content"
+                android:layout_width="250dp"
+                android:layout_height="55dp"
                 android:layout_gravity="center_horizontal"
                 android:text="관리자"
                 android:textColor="@color/white"
@@ -46,8 +43,8 @@
 
             <Button
                 android:id="@+id/driver"
-                android:layout_width="200dp"
-                android:layout_height="wrap_content"
+                android:layout_width="250dp"
+                android:layout_height="55dp"
                 android:layout_gravity="center_horizontal"
                 android:text="운반자"
                 android:textColor="@color/white"
