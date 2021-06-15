@@ -29,6 +29,7 @@ public class WaitActivity extends AppCompatActivity {
     private String ble;
     private String manager;
     private String phone;
+    private String ship;
     private String from;
     private String to;
     private int upper;
@@ -89,6 +90,7 @@ public class WaitActivity extends AppCompatActivity {
             ble = jsonObject.getString("ble");
             manager = jsonObject.getString("manager");
             phone = jsonObject.getString("phone");
+            ship = jsonObject.getString("ship");
             from = jsonObject.getString("from");
             to = jsonObject.getString("to");
             upper = jsonObject.getInt("upper");
@@ -106,6 +108,7 @@ public class WaitActivity extends AppCompatActivity {
         intent.putExtra("ble", ble);
         intent.putExtra("manager", manager);
         intent.putExtra("manager_phone", phone);
+        intent.putExtra("ship", ship);
         intent.putExtra("from", from);
         intent.putExtra("to", to);
         intent.putExtra("upper", upper);

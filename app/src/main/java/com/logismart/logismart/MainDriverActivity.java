@@ -79,6 +79,7 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
 
     MapView mapView;
     TextView bt_name; // Connected ble name
+    TextView shipName;
     TextView startingPoint;
     TextView destination;
     TextView manager_name;
@@ -135,6 +136,7 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
         USER_ID = String.valueOf(mPreferences.getInt("id", 0));
 
         bt_name = findViewById(R.id.BT_name);
+        shipName = findViewById(R.id.delivery);
         startingPoint = findViewById(R.id.from);
         destination = findViewById(R.id.to);
         manager_name = findViewById(R.id.Manager_name);
@@ -146,6 +148,7 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
 
         Intent intent = getIntent();
         ble_name = intent.getStringExtra("ble");
+        shipName.setText(intent.getStringExtra("ship"));
         startingPoint.setText(intent.getStringExtra("from"));
         destination.setText(intent.getStringExtra("to"));
         manager_name.setText(intent.getStringExtra("manager"));
