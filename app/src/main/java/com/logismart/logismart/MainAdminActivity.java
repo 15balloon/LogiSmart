@@ -37,7 +37,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -50,6 +49,9 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
     private final String SharedPrefFile = "com.logismart.android.SharedPreferences";
 
     private Http http;
+    HttpDataThread dataTask = null;
+    Timer mTimer;
+    TimerTask t;
 
     ThermoView ThermoView;
     ThermoGaugeView ThermoGaugeView;
@@ -157,8 +159,13 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
         marker.setSelectedMarkerType(MapPOIItem.MarkerType.RedPin); // 마커를 클릭했을때, 기본으로 제공하는 RedPin 마커 모양.
         mapView.addPOIItem(marker);
 
-        FirebaseMessaging.getInstance().getToken();
+        dataTask = new HttpDataThread();
+        new Thread(dataTask).start();
 
+        mTimer = new Timer();
+        t = null;
+
+        FirebaseMessaging.getInstance().getToken();
     }
 
     public class BackPressCloseHandler {
@@ -212,7 +219,7 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
                     Log.d(TAG, "run: Http False");
                 }
                 done = true;
-            } catch (IOException | JSONException e) {
+            } catch (JSONException e) {
                 e.printStackTrace();
             }
         }
@@ -237,6 +244,27 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
         }
     }
 
+    private TimerTask createTimerTask() {
+        TimerTask timerTask = new TimerTask() {
+            public void run()
+            {
+                dataTask.run();
+                JSONObject jsonObject = dataTask.getData();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            displayData(jsonObject);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+            }
+        };
+        return timerTask;
+    }
+
     private void setmConnected(int connState) {
         if (connState == 1) {
             drawable.setColor(Color.GREEN);
@@ -250,7 +278,7 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
         }
     }
 
-    private void setMethod(ListViewItem device) {
+    private void setMethod(ListViewItem device) throws JSONException {
         bt_name.setText(device.getBleName());
         startingPoint.setText(device.getBleFrom());
         destination.setText(device.getBleTo());
@@ -264,6 +292,7 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
         startAngle = 270;
 
         setmConnected(device.getBleConnection());
+        displayData(null);
     }
 
     private void ble_list() {
@@ -291,7 +320,13 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
                 Log.d(TAG, "onItemClick: " + device);
 
                 if (device == null) return;
-                setMethod(device);
+
+                try {
+                    setMethod(device);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
                 dataRead();
 
                 dialog.dismiss();
@@ -434,7 +469,7 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
                     }
                 }
                 done = true;
-            } catch (IOException | JSONException e) {
+            } catch (JSONException e) {
                 e.printStackTrace();
             }
         }
@@ -458,46 +493,23 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
 
     public void dataRead() {
         Log.d(TAG, "dataRead: mConnected - " + mConnected);
-        Timer mTimer = null;
-        TimerTask t = null;
-        HttpDataThread task = new HttpDataThread();
-        new Thread(task).start();
+
         if (mConnected) {
-            try {
-                Log.d(TAG, "startDataRead: mConnected True");
-
-                t = new TimerTask()
-                {
-                    public void run()
-                    {
-                        task.run();
-                        JSONObject jsonObject = task.getData();
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    displayData(jsonObject);
-                                } catch (JSONException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        });
-                    }
-                };
-                mTimer = new Timer();
+            Log.d(TAG, "dataRead: run" + t);
+            if (t == null) {
+                t = createTimerTask();
                 mTimer.schedule(t, 0, 1000);
+            }
 
-                if (!mConnected) {
-                    mTimer.cancel();
-                    t.cancel();
-
-                    setmConnected(0);
-                }
-
-            } catch (Exception e) {
-                Log.d("Exception", e.getMessage());
+        }
+        else {
+            Log.d(TAG, "dataRead: cancel");
+            if (t != null) {
+                t.cancel();
+                t = null;
             }
         }
+
     }
 
     private void displayData(JSONObject data) throws JSONException {

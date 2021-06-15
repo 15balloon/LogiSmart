@@ -16,8 +16,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.IOException;
-
 public class LoginActivity extends AppCompatActivity {
 
     private static final String TAG = "LoginActivity";
@@ -115,7 +113,7 @@ public class LoginActivity extends AppCompatActivity {
                             }
                         });
                     }
-                } catch (IOException | JSONException e) {
+                } catch (JSONException e) {
                     e.printStackTrace();
                 }
             }

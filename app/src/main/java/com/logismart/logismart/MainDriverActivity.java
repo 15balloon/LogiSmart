@@ -60,7 +60,6 @@ import net.daum.mf.map.api.MapView;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -608,11 +607,7 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
         new Thread(new Runnable() {
             @Override
             public void run() {
-                try {
-                    http.Http(ServerURL.CARRIER_CONNECTION_URL, USER_ID, state);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                http.Http(ServerURL.CARRIER_CONNECTION_URL, USER_ID, state);
             }
         }).start();
     }
@@ -817,7 +812,7 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
                         }
                     }
 
-                } catch (IOException | JSONException e) {
+                } catch (JSONException e) {
                     e.printStackTrace();
                 }
             }

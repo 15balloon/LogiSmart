@@ -18,8 +18,6 @@ import androidx.work.WorkManager;
 
 import com.google.firebase.messaging.RemoteMessage;
 
-import java.io.IOException;
-
 public class MyFirebaseMessagingService extends com.google.firebase.messaging.FirebaseMessagingService {
 
     private static final String TAG = "MyFirebaseMsgService";
@@ -97,17 +95,12 @@ public class MyFirebaseMessagingService extends com.google.firebase.messaging.Fi
         new Thread(new Runnable() {
             @Override
             public void run() {
-                try {
-                    String result = http.Http(ServerURL.ADMIN_TOKEN_URL, USER_NAME, token);
-                    if (result.contains("success")) {
-                        Log.d(TAG, "run: Http success");
-                    }
-                    else {
-                        Log.d(TAG, "run: Http fail");
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    Log.d(TAG, "run: Http exception");
+                String result = http.Http(ServerURL.ADMIN_TOKEN_URL, USER_NAME, token);
+                if (result.contains("success")) {
+                    Log.d(TAG, "run: Http success");
+                }
+                else {
+                    Log.d(TAG, "run: Http fail");
                 }
             }
         }).start();

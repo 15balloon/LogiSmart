@@ -12,8 +12,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.IOException;
-
 public class WaitActivity extends AppCompatActivity {
 
     private static final String TAG = "WaitActivity";
@@ -74,7 +72,7 @@ public class WaitActivity extends AppCompatActivity {
                 try {
                     String result = http.Http(ServerURL.CARRIER_ACCEPT_URL, USER_ID);
                     getreceiveMsg(result);
-                } catch (IOException | JSONException e) {
+                } catch (JSONException e) {
                     e.printStackTrace();
                 }
             }

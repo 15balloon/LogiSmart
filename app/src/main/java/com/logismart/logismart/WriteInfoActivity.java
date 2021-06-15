@@ -16,8 +16,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.IOException;
-
 public class WriteInfoActivity extends AppCompatActivity {
 
     private static final String TAG = "WriteInfoActivity";
@@ -98,7 +96,7 @@ public class WriteInfoActivity extends AppCompatActivity {
                     String result = http.Http(ServerURL.CARRIER_INFO_URL, name, birth, phone);
                     getreceiveMsg(result);
                     
-                } catch (IOException | JSONException e) {
+                } catch (JSONException e) {
                     e.printStackTrace();
                 }
             }
