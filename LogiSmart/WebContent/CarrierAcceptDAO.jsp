@@ -64,6 +64,7 @@
 			jObject.put("ble", ble_name);
 			jObject.put("manager", result3.getString("m_Name"));
 			jObject.put("phone", result3.getString("m_Phone"));
+			jObject.put("ship", result2.getString("bbs_name"));
 			jObject.put("from", result2.getString("bbs_start"));
 			jObject.put("to", result2.getString("bbs_arrival"));
 			jObject.put("upper", result2.getString("bbs_upper"));
