@@ -81,6 +81,7 @@ public class WaitActivity extends AppCompatActivity {
     }
 
     private void getreceiveMsg(String receiveMsg) throws JSONException {
+        Log.d(TAG, "getreceiveMsg: " + receiveMsg);
         JSONObject jsonObject = new JSONObject(receiveMsg);
 
         if (!receiveMsg.isEmpty() && jsonObject.getString("result").equals("success")) { // success

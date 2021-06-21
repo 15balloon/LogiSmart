@@ -72,7 +72,6 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
     private final String SharedPrefFile = "com.logismart.android.SharedPreferences";
     private SharedPreferences mPreferences;
 
-
     private String USER_ID;
     ThermoView ThermoView;
     ThermoGaugeView ThermoGaugeView;
@@ -823,7 +822,7 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
     }
 
     private void displayData(String data) {
-        if (data != null) {
+        if (data.length() > 1) {
             Log.i("Main DATA", data);
             String[] uuid = data.split(" ");
             if (uuid[1].isEmpty())

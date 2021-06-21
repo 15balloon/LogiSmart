@@ -27,8 +27,6 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
-import com.google.firebase.messaging.FirebaseMessaging;
-
 import net.daum.mf.map.api.MapPOIItem;
 import net.daum.mf.map.api.MapPoint;
 import net.daum.mf.map.api.MapView;
@@ -164,8 +162,6 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
 
         mTimer = new Timer();
         t = null;
-
-        FirebaseMessaging.getInstance().getToken();
     }
 
     public class BackPressCloseHandler {
@@ -356,7 +352,7 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
                     e.printStackTrace();
                 }
             }
-        }, 0);
+        }, 100);
     }
 
     private class LeDeviceListAdapter extends BaseAdapter {
@@ -523,19 +519,25 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
 
             LAT = data.getString("lat");
             LON = data.getString("lon");
-            thermo = (float) data.getInt("thermo");
+            thermo = (float) data.getDouble("thermo");
             connState = data.getInt("conn");
 
             setmConnected(connState);
 
+            if (thermo == -404.0) {
+                thermo = 0;
+            }
             ThermoView.changeValueEvent(thermo);
         }
         else {
             ThermoView.changeValueEvent(0);
         }
-        mapPoint = MapPoint.mapPointWithGeoCoord(Float.parseFloat(LAT), Float.parseFloat(LON));
-        mapView.setMapCenterPoint(mapPoint, true);
-        marker.setMapPoint(mapPoint);
+
+        if (LAT != "null" && LON != "null") {
+            mapPoint = MapPoint.mapPointWithGeoCoord(Float.parseFloat(LAT), Float.parseFloat(LON));
+            mapView.setMapCenterPoint(mapPoint, true);
+            marker.setMapPoint(mapPoint);
+        }
 
         calculateAngle(thermo);
         gaugeAnimator();

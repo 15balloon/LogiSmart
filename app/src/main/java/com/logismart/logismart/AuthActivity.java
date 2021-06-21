@@ -131,6 +131,8 @@ public class AuthActivity extends Activity {
 
         reAuthBtn.setClickable(false);
         pd.dismiss();
+
+//        deleteAuth();
     }
 
     public void deleteAuth() {
