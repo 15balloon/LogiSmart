@@ -454,7 +454,7 @@ public class MainAdminActivity extends AppCompatActivity implements OnMyChangeLi
             try {
                 String result = http.Http(ServerURL.ADMIN_DATA_URL, Integer.toString(DRIVER_ID));
 
-                if (!result.isEmpty()) {
+                if (!result.trim().isEmpty()) {
                     jsonObject = new JSONObject(result);
                     if (jsonObject.getString("result").equals("success")) {
                         Log.d(TAG, "run: Http Success");

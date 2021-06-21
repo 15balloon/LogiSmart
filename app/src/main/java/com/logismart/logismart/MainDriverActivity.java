@@ -94,6 +94,8 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
     MapPoint mapPoint;
     MapPOIItem marker;
 
+    private GpsTracker gpsTracker;
+
     private LeDeviceListAdapter mLeDeviceListAdapter;
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothManager bluetoothManager;
@@ -190,6 +192,7 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
                         }
 
                         else {
+                            gpsTracker = new GpsTracker(MainDriverActivity.this);
                             ble_connect();
                         }
                     }
@@ -623,13 +626,12 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
                     Log.d(TAG, "onReceive: CONNECTED");
                     bt_name.setSelected(true);
                     bt_name.setText(mDeviceName);
-//                    invalidateOptionsMenu();
                     updateConnectionState("connect");
                     break;
 
                 case BluetoothLeService.ACTION_GATT_DISCONNECTED:
                     Log.d(TAG, "onReceive: DISCONNECTED");
-//                    invalidateOptionsMenu();
+
                     break;
 
                 case BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED:
@@ -776,6 +778,8 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
             public void run() {
                 String[] data_item = data[1].split("/");
                 String result = "";
+
+                Log.d(TAG, "run: data - " + data_item);
                 try {
                     switch (data[0]) {
                         case "GPS":
@@ -801,7 +805,7 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
                                 }
                             });
 
-                            result = http.Http(ServerURL.CARRIER_THERMO_URL, USER_ID, data_item[1].substring(0, data_item[1].length() - 3));
+                            result = http.Http(ServerURL.CARRIER_THERMO_URL, USER_ID, data_item[1]);
                             break;
                     }
 
@@ -825,9 +829,24 @@ public class MainDriverActivity extends AppCompatActivity implements OnMyChangeL
         if (data.length() > 1) {
             Log.i("Main DATA", data);
             String[] uuid = data.split(" ");
+            if (uuid[0] == "GPS")
+                gpsTracker.stopUsingGPS();
             if (uuid[1].isEmpty())
                 return;
             ThreadServer(uuid);
+        }
+        else if (data.length() == 1) {
+            double lat = gpsTracker.getLatitude();
+            double lon = gpsTracker.getLongitude();
+
+            String phoneData = Double.toString(lat) + "/" + Double.toString(lon);
+
+            Log.d(TAG, "GPS DATA" + lat + "/" + lon);
+
+            String[] gps = new String[]{"GPS", phoneData};
+            if (gps[1].isEmpty())
+                return;
+            ThreadServer(gps);
         }
     }
 
