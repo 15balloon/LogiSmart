@@ -45,12 +45,16 @@
 		pstmt3.setInt(1, id);
 		
 		result3 = pstmt3.executeQuery();
+
+		boolean one = result1.next();
+		boolean two = result2.next();
+		boolean three = result3.next();
 		
-		if (result1.next() || result2.next() || result3.next()) {
+		if (one || two || three) {
 			System.out.println("Search Complete");
 			jObject.put("result", "success");
 			
-			result1.getString("l_time");
+			result1.getTimestamp("l_time");
 			
 			if (!result1.wasNull()) {
 				jObject.put("lat", result1.getString("l_wido"));
@@ -60,7 +64,7 @@
 				jObject.put("lon", "null");
 			}
 			
-			result2.getFloat("t_time");
+			result2.getTimestamp("t_time");
 			
 			if (!result2.wasNull()) {
 				jObject.put("thermo", result2.getFloat("t_data"));
