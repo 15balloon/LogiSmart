@@ -22,8 +22,8 @@
 	
 	try {
 		request.setCharacterEncoding("UTF-8");
-		String id = request.getParameter("strings1");
-		int thermo = Integer.parseInt(request.getParameter("strings2"));
+		int id = Integer.parseInt(request.getParameter("strings1"));
+		float thermo = Float.parseFloat(request.getParameter("strings2"));
 		
 		JSONObject jObject = new JSONObject();
 		
@@ -36,15 +36,15 @@
 		String insert_thermo = "INSERT INTO temper(t_id, t_data, t_time) VALUES(?, ?, NOW())";
 		
 		pstmt = conn.prepareStatement(insert_thermo);
-		pstmt.setInt(1, Integer.parseInt(id));
-		pstmt.setInt(2, thermo);
+		pstmt.setInt(1, id);
+		pstmt.setFloat(2, thermo);
 		
 		int insert = pstmt.executeUpdate();
 		
 		String get_thermo = "SELECT * FROM temper WHERE t_id = ? ORDER BY t_time DESC LIMIT 1;";
 		
 		pstmt1 = conn.prepareStatement(get_thermo);
-		pstmt1.setInt(1, Integer.parseInt(id));
+		pstmt1.setInt(1, id);
 		
 		result1 = pstmt1.executeQuery();
 		
@@ -54,7 +54,7 @@
 		String search_thermo = "SELECT * FROM managebbs WHERE bbs_carrierID = ?;";
 		
 		pstmt2 = conn.prepareStatement(search_thermo);
-		pstmt2.setInt(1, Integer.parseInt(id));
+		pstmt2.setInt(1, id);
 		
 		result2 = pstmt2.executeQuery();
 		
@@ -63,7 +63,7 @@
 		String search_bt = "SELECT * FROM bluetooth WHERE b_carrier = ?;";
 		
 		pstmt3 = conn.prepareStatement(search_bt);
-		pstmt3.setInt(1, Integer.parseInt(id));
+		pstmt3.setInt(1, id);
 		
 		result3 = pstmt3.executeQuery();
 		

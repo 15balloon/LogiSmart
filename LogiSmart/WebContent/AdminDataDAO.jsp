@@ -18,7 +18,7 @@
 	
 	try {
 		request.setCharacterEncoding("UTF-8");
-		String id = request.getParameter("strings1");
+		int id = Integer.parseInt(request.getParameter("strings1"));
 		
 		JSONObject jObject = new JSONObject();
 		
@@ -30,28 +30,44 @@
 		String get_thermo = "SELECT * FROM temper WHERE t_id = ? ORDER BY t_time DESC LIMIT 1;";
 		
 		pstmt1 = conn.prepareStatement(get_gps);
-		pstmt1.setInt(1, Integer.parseInt(id));
+		pstmt1.setInt(1, id);
 		
 		result1 = pstmt1.executeQuery();
 		
 		pstmt2 = conn.prepareStatement(get_thermo);
-		pstmt2.setInt(1, Integer.parseInt(id));
+		pstmt2.setInt(1, id);
 		
 		result2 = pstmt2.executeQuery();
 		
 		String get_conn = "SELECT * FROM bluetooth WHERE b_carrier = ?";
 		
 		pstmt3 = conn.prepareStatement(get_conn);
-		pstmt3.setInt(1, Integer.parseInt(id));
+		pstmt3.setInt(1, id);
 		
 		result3 = pstmt3.executeQuery();
 		
-		if (result1.next() && result2.next() && result3.next()) {
+		if (result1.next() || result2.next() || result3.next()) {
 			System.out.println("Search Complete");
 			jObject.put("result", "success");
-		 	jObject.put("lat", result1.getString("l_wido"));
-			jObject.put("lon", result1.getString("l_gyeongdo").trim());
-			jObject.put("thermo", result2.getInt("t_data"));
+			
+			result1.getString("l_time");
+			
+			if (!result1.wasNull()) {
+				jObject.put("lat", result1.getString("l_wido"));
+				jObject.put("lon", result1.getString("l_gyeongdo").trim());
+			} else {
+				jObject.put("lat", "null");
+				jObject.put("lon", "null");
+			}
+			
+			result2.getFloat("t_time");
+			
+			if (!result2.wasNull()) {
+				jObject.put("thermo", result2.getFloat("t_data"));
+			} else {
+				jObject.put("thermo", "-404.0");
+			}
+		 	
 			jObject.put("conn", result3.getInt("b_conn"));
 		}
 		else {

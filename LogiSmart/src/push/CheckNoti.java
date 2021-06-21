@@ -5,7 +5,7 @@ import java.sql.SQLException;
 
 public class CheckNoti {
 	
-	public int checkSafe(int thermo, ResultSet result2) throws SQLException {
+	public int checkSafe(float thermo, ResultSet result2) throws SQLException {
 				
 		int check = 0; // 0:fine, 1:caution, 2:danger
 		int upper = result2.getInt("bbs_upper");
