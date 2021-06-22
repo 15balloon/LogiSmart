@@ -64,6 +64,10 @@
 					connect = 0;
 				}
 			}
+			else {
+				admName = "null";
+				connect = 0;
+			}
 			
 			int bbs_carrierID = result1.getInt("bbs_carrierID");
 			
