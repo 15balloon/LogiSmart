@@ -27,7 +27,7 @@
 
 ## 1. 개요
 
-온도관리 IoT 콜드체인 시스템.  
+위치 및 온도 관리 IoT 콜드체인 시스템.  
 블루투스를 통해 물류의 위치와 온도 데이터를 실시간으로 전송하고,  
 적정 온도 범위를 벗어나기 전에 관리자에게 미리 알려주는 시스템을 구축한다.
 
@@ -45,6 +45,7 @@
 - 안드로이드 앱 개발
   - 로그인 기능과 본인인증 기능 개발
   - 앱에서 아두이노를 블루투스로 연결하여 데이터 수신
+  - 핸드폰 내장 GPS를 이용한 위치 정보 서비스 구현
   - 서버와 HTTP 통신
   - Firebase Cloud Messaging으로 경고 Push 전송
 
@@ -94,7 +95,7 @@ Firebase Phone Authentication을 사용해 본인 인증을 구현했다.
 </div>
 
 (운반 초기 화면 / 블루투스 화면 / 위치 퍼미션 수락 화면)  
-블루투스 연결을 위한 블루투스와 위치 퍼미션에 대한 수락창을 구현했다.
+블루투스 기기 연결을 위한 블루투스와 위치 퍼미션에 대한 수락창을 구현했다.
 
 <div>
 <img src="https://user-images.githubusercontent.com/81695614/124214013-85840d80-db2c-11eb-90f1-7a1f315ded98.jpg" width="30%" height="30%"/>
@@ -108,7 +109,10 @@ Firebase Phone Authentication을 사용해 본인 인증을 구현했다.
 <img src="https://user-images.githubusercontent.com/81695614/124213106-f7f3ee00-db2a-11eb-9e10-cac1ef49ef44.gif" width="100%" height="100%">
 </div>
 
-(기기 연결 후 데이터 전달 및 백그라운드 작동)
+(블루투스 기기 연결 후 데이터 전달 및 백그라운드 작동)  
+블루투스 기기가 연결되면 위치와 온도 정보를 운반자에게 보여줌과 동시에 약 1초 간격으로 서버에 전달한다.  
+만약 기기의 위치 정보가 제대로 전달되지 않으면 핸드폰 내장 GPS 정보를 사용한다.  
+폰 화면이 꺼지거나 다른 앱을 사용할 때도 블루투스 기기와의 연결과 데이터 전달을 위한 서버와의 연결이 유지되어야 하므로 백그라운드 작동이 되도록 구현했다.
 
 <div>
 <img src="https://user-images.githubusercontent.com/81695614/124215287-b2392480-db2e-11eb-9f32-c4323949c236.jpg" width="30%" height="30%"/>
@@ -117,4 +121,4 @@ Firebase Phone Authentication을 사용해 본인 인증을 구현했다.
 
 (경고 알림 / 위험 알림)  
 물품이 적정 온도 범위 경계에 근접하면 경고 알림을, 범위를 넘어서면 위험 알림을 보낸다.  
-Firebase Cloud Messaging을 사용하여 서버에서 Push 알림을 보냈다.
+Firebase Cloud Messaging을 사용하여 서버에서 Push 알림을 보낼 수 있도록 구현했다.
